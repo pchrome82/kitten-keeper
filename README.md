@@ -58,8 +58,10 @@ Rendering: a 184x224 RGB565 logical canvas, upscaled 2x in 16-row chunks through
 `src/game/pet.h` / `pet.cpp` hold the rates (hunger, resentment, night budget, ageing, `CHONK_BLACK_HOLE`).
 `src/game/breeds.cpp` holds breed speed/gain/hair multipliers and prices. After changing anything run `./sim balance`.
 
-## Licenses
-Project code: yours to use. `src/hal/es8311/` is Waveshare's ES8311 driver (Apache-2.0).
+## Licence
+Kitten Keeper is free for personal, hobby and other noncommercial use under the [PolyForm Noncommercial License 1.0.0](LICENSE). It is provided as is, with no warranty: it has only been tested on Waveshare ESP32-S3 touch boards, and nothing is guaranteed to work on anything else. Want to use it commercially? Open an issue to ask.
+
+`src/hal/es8311/` is Waveshare's ES8311 driver (Apache-2.0) and keeps its own licence.
 
 ## What's in this build
 Empty Grimy Cartoon house (baked day/night room + live window), pixel cats (skinny/normal/chonk, 8 breeds), shop with
