@@ -1,0 +1,259 @@
+<title>Kitten Keeper</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a handheld console beside a control strip (wraps to a stack on phones). */
+:root {
+  --bg: #17141f;
+  --panel: #231e30;
+  --panel-hi: #2f2840;
+  --fg: #f1ecf8;
+  --dim: #a79db8;
+  --accent: #ffb84d;
+  --line: #3a3150;
+  --shell: #0c0a12;
+  --font-display: "Fredoka", "Trebuchet MS", sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; padding-block: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 900px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 26px; margin: 0; letter-spacing: .01em; }
+.sub { color: var(--dim); margin: 2px 0 0; }
+.dev { flex: 0 1 420px; min-width: 0; }
+.shell { background: var(--shell); border-radius: 34px; padding: 14px; box-shadow: 0 0 0 2px var(--line), 0 18px 40px rgba(0,0,0,.45); margin-top: 14px; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 368 / 448; border-radius: 22px; image-rendering: pixelated; background: #000; touch-action: none; cursor: pointer; }
+.side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 14px; padding-top: 6px; }
+.card { background: var(--panel); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 16px; }
+.card p { margin: 0; color: var(--dim); line-height: 1.45; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: var(--fg); background: var(--panel-hi); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, .pad:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.on { background: var(--accent); color: #2a1c05; border-color: var(--accent); }
+.pad { position: relative; width: 132px; height: 132px; border-radius: 16px; background: var(--shell); border: 1px solid var(--line); touch-action: none; flex: none; }
+.pad::before, .pad::after { content: ""; position: absolute; background: var(--line); }
+.pad::before { left: 50%; top: 8px; bottom: 8px; width: 1px; }
+.pad::after { top: 50%; left: 8px; right: 8px; height: 1px; }
+.dot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,.5); left: 50%; top: 50%; pointer-events: none; }
+.mono { font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.tip { font-size: 13px; }
+</style>
+
+<main>
+  <section class="dev">
+    <h1>Kitten Keeper</h1>
+    <p class="sub">Playing the real game code in your browser. Click or tap the screen like the touchscreen.</p>
+    <div class="shell"><canvas id="screen" width="368" height="448" aria-label="Game screen"></canvas></div>
+  </section>
+
+  <section class="side">
+    <div class="card">
+      <h2>Tilt the device</h2>
+      <p>Drag the dot to tilt the device. Pick up and Shake wake or disturb a sleeping cat. Tilt-to-pour feeding and Lap Cat will use this once they are built.</p>
+      <div class="row">
+        <div class="pad" id="pad" tabindex="0" aria-label="Tilt pad"><div class="dot" id="dot"></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <button id="level">Level</button>
+          <button id="pick">Pick up</button>
+          <button id="shake">Shake</button>
+          <span class="mono" id="imu">x 0.00  y 0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Time of day</h2>
+      <p>Cats sleep by day and roam at night in hard mode. Move the clock to see the room, window and sunbeam change.</p>
+      <input type="range" id="hour" min="0" max="23" value="12" aria-label="Hour of day">
+      <div class="row"><span class="mono" id="hourLbl">12:00</span><button id="now">Use real time</button></div>
+      <div class="row">
+        <span class="mono">Skip ahead</span>
+        <button data-ff="1">+1 h</button><button data-ff="6">+6 h</button><button data-ff="24">+1 day</button>
+      </div>
+      <div class="row"><span class="mono">Speed</span>
+        <select id="speed" aria-label="Game speed"><option value="1">1x</option><option value="10">10x</option><option value="60">60x</option><option value="600">600x</option></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Developer options</h2>
+      <p>Test helpers. +100 hairballs is also on the device: hold the version line in Settings for 3 s.</p>
+      <div class="row"><button id="hb100">+100 hairballs</button><button id="giftbox">Gift box</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Jump to a game</h2>
+      <p>Handy for trying things. Explore unlocks at adulthood (1 day old), twice a day.</p>
+      <div class="row">
+        <button data-go="0">Tilt-pour feed</button><button data-go="1">Lap Cat</button><button data-go="2">Knock it off</button><button data-go="3">Heist Run</button><button data-go="4">Explore</button><button data-go="5">Scratching post</button><button data-go="6">Laser chase</button><button data-go="7">Ambulance scene</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Options</h2>
+      <div class="row"><button id="snd" class="on">Sound on</button><button id="reset">Delete save</button></div>
+      <p class="tip" id="msg">Your cat is saved in this browser.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const WASM_B64 = "__WASM__";
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const cv = $("screen"), ctx = cv.getContext("2d");
+  const off = document.createElement("canvas"); off.width = 368; off.height = 448;
+  const octx = off.getContext("2d"); const img = octx.createImageData(368, 448);
+  const bin = Uint8Array.from(atob(WASM_B64), (c) => c.charCodeAt(0));
+  const { instance } = await WebAssembly.instantiate(bin, { wasi_snapshot_preview1: { fd_close: () => 0, fd_seek: () => 0, fd_write: () => 0 } });
+  const X = instance.exports; if (X._initialize) X._initialize();
+
+  // ---- save restore ----
+  const KEY = "kitten-keeper-save-v2";
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const b = Uint8Array.from(atob(s), (c) => c.charCodeAt(0)); new Uint8Array(X.memory.buffer, X.save_ptr(), b.length).set(b); X.save_set_len(b.length); }
+  } catch (e) {}
+  const now = new Date();
+  X.init((Math.random() * 4e9) >>> 0, now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+  // show this device's battery on the HUD when the browser shares it
+  if (navigator.getBattery && X.set_battery) {
+    navigator.getBattery().then((bat) => {
+      const push = () => X.set_battery(Math.round(bat.level * 100), bat.charging ? 1 : 0);
+      push(); bat.addEventListener("levelchange", push); bat.addEventListener("chargingchange", push);
+    }).catch(() => {});
+  }
+  $("hour").value = now.getHours(); $("hourLbl").textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+
+  // ---- input ----
+  let down = 0, px = 0, py = 0;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); px = Math.max(0, Math.min(367, ((e.clientX - r.left) / r.width) * 368)) | 0; py = Math.max(0, Math.min(447, ((e.clientY - r.top) / r.height) * 448)) | 0; };
+  cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); pos(e); down = 1; audio(); });
+  cv.addEventListener("pointermove", (e) => { if (down) pos(e); });
+  const up = () => { down = 0; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+
+  // ---- tilt ----
+  let tx = 0, ty = 0, script = null;   // tilt in range -1..1 (about +-70 degrees)
+  const pad = $("pad"), dot = $("dot");
+  const setTilt = (x, y) => { tx = Math.max(-1, Math.min(1, x)); ty = Math.max(-1, Math.min(1, y)); dot.style.left = 50 + tx * 42 + "%"; dot.style.top = 50 + ty * 42 + "%"; };
+  const padPos = (e) => { const r = pad.getBoundingClientRect(); setTilt(((e.clientX - r.left) / r.width - 0.5) * 2 / 0.84, ((e.clientY - r.top) / r.height - 0.5) * 2 / 0.84); };
+  let padDown = false;
+  pad.addEventListener("pointerdown", (e) => { pad.setPointerCapture(e.pointerId); padDown = true; script = null; padPos(e); });
+  pad.addEventListener("pointermove", (e) => { if (padDown) padPos(e); });
+  pad.addEventListener("pointerup", () => { padDown = false; });
+  pad.addEventListener("keydown", (e) => { const k = { ArrowLeft: [-.1, 0], ArrowRight: [.1, 0], ArrowUp: [0, -.1], ArrowDown: [0, .1] }[e.key]; if (k) { e.preventDefault(); setTilt(tx + k[0], ty + k[1]); } });
+  window.KK = { X, setTilt };   // handy for testing from the console
+  $("level").onclick = () => { script = null; setTilt(0, 0); };
+  $("pick").onclick = () => { script = { kind: "pick", n: 0 }; };
+  $("shake").onclick = () => { script = { kind: "shake", n: 0 }; };
+  function imu() {
+    let ax = Math.sin(tx * 1.2), ay = Math.sin(ty * 1.2), az = Math.cos(tx * 1.2) * Math.cos(ty * 1.2);
+    if (script) {
+      script.n++;
+      if (script.kind === "shake") { const s = script.n % 3 === 0 ? 2.4 : 0.1; ay = s * (script.n % 6 === 0 ? -1 : 1); if (script.n > 36) script = null; }
+      else { const a = Math.min(script.n, 70) * 0.03; ax = Math.sin(a); az = Math.cos(a); if (script.n > 160) { script = null; setTilt(0, 0); } }
+    }
+    X.set_imu(ax, ay, az);
+    $("imu").textContent = "x " + ax.toFixed(2) + "  y " + ay.toFixed(2);
+  }
+
+  // ---- clock & speed ----
+  $("hour").oninput = (e) => { const h = +e.target.value; $("hourLbl").textContent = String(h).padStart(2, "0") + ":00"; const d = new Date(); X.set_clock(d.getFullYear(), d.getMonth() + 1, d.getDate(), h, 0, 0); };
+  $("now").onclick = () => { const d = new Date(); X.set_clock(d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()); $("hour").value = d.getHours(); $("hourLbl").textContent = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+  $("hb100").onclick = () => { X.add_hairballs(100); };
+  $("giftbox").onclick = () => { audio(); X.dev_gift(); };
+  document.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { audio(); X.debug_start(+b.dataset.go); }));
+  document.querySelectorAll("[data-ff]").forEach((b) => (b.onclick = () => X.fast_forward(+b.dataset.ff)));
+  $("speed").onchange = (e) => X.timescale(+e.target.value);
+
+  // ---- sound ----
+  let ac = null, soundOn = true;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === "suspended") ac.resume(); }
+  // GENERATED from src/hal/audio.cpp (same sounds as the board): [from Hz, to Hz, seconds, wave, amp, wobble]
+  const SND = [
+    [[1100,1500,0.03,"sine",0.45,0]],   // tap
+    [[700,1000,0.09,"mew",0.35,0.02], [1000,620,0.17,"mew",0.35,0.04]],   // meow_soft
+    [[600,1050,0.12,"mew",0.6,0.02], [1050,520,0.3,"mew",0.6,0.05]],   // meow
+    [[520,1000,0.17,"mew",0.95,0.02], [1000,420,0.52,"mew",0.95,0.06], [-1,-1,0.12,"rest",0,0], [500,900,0.12,"mew",0.9,0.02], [900,360,0.38,"mew",0.9,0.06]],   // meow_loud
+    [[70,70,0.7,"noise",0.35,0]],   // purr
+    [[300,480,0.055,"sine",0.55,0], [-1,-1,0.04,"rest",0,0], [280,460,0.055,"sine",0.55,0], [-1,-1,0.04,"rest",0,0], [320,520,0.07,"sine",0.55,0]],   // eat
+    [[1320,1400,0.05,"sine",0.5,0], [1760,1900,0.14,"sine",0.5,0]],   // coin
+    [[480,170,0.11,"wob",0.55,0.25], [0,0,0.025,"noise",0.15,0]],   // scoop
+    [[320,210,0.08,"wob",0.45,0.2], [-1,-1,0.04,"rest",0,0], [340,200,0.09,"wob",0.45,0.2], [-1,-1,0.03,"rest",0,0], [500,950,0.06,"sine",0.45,0]],   // hack
+    [[240,780,0.15,"wob",0.55,0.12]],   // pounce
+    [[523,560,0.07,"sine",0.5,0], [659,700,0.07,"sine",0.5,0], [784,830,0.07,"sine",0.5,0], [1047,1120,0.22,"sine",0.5,0.01]],   // win
+    [[440,400,0.17,"triangle",0.4,0.03], [392,290,0.3,"triangle",0.4,0.06]],   // lose
+    [[500,300,0.42,"mew",0.4,0.06]],   // sad
+    [[900,50,1.3,"sine",0.5,0.02], [0,0,0.3,"noise",0.3,0]],   // hole
+    [[520,1000,0.17,"mew",1.0,0.02], [1000,420,0.52,"mew",1.0,0.06], [-1,-1,0.14,"rest",0,0], [560,1050,0.17,"mew",1.0,0.02], [1050,400,0.56,"mew",1.0,0.06], [-1,-1,0.14,"rest",0,0], [600,1100,0.19,"mew",1.0,0.02], [1100,380,0.7,"mew",1.0,0.07]],   // alarm
+    [[0,0,0.04,"noise",0.3,0], [1500,1100,0.018,"sine",0.2,0]],   // scratch
+    [[420,600,0.18,"mew",0.35,0.02], [600,300,0.42,"mew",0.35,0.05]],   // yawn
+    [[0,0,0.07,"noise",0.3,0], [800,300,0.07,"sine",0.35,0]],   // poof
+    [[0,0,0.3,"noise",0.4,0]],   // hiss
+    [[2300,2050,0.028,"triangle",0.30,0], [3050,2850,0.022,"sine",0.14,0]],   // kibble_bowl
+    [[0,0,0.02,"noise",0.30,0], [170,115,0.032,"sine",0.28,0]],   // kibble_floor
+    [[950,900,0.025,"sine",0.35,0]],   // beat
+    [[320,170,0.1,"wob",0.45,0.18]],   // miss
+    [[380,880,0.08,"sine",0.55,0]],   // bloop
+    [[560,200,0.13,"wob",0.55,0.3]],   // squish
+    [[700,1500,0.04,"sine",0.5,0]],   // pop
+    [[0,0,0.06,"noise",0.35,0], [1000,420,0.09,"sine",0.4,0], [500,800,0.04,"sine",0.3,0]],   // splash
+    [[820,400,0.07,"sine",0.5,0]],   // back
+    [[3000,3500,0.09,"sine",0.5,0], [-1,-1,0.07,"rest",0,0], [3000,3500,0.09,"sine",0.5,0]],   // alert
+    [[1050,1050,0.07,"sine",0.45,0], [1320,1320,0.07,"sine",0.45,0], [1760,1760,0.13,"sine",0.5,0]],   // chime
+  ];
+  const VARY = { 19: 0.18, 20: 0.25, 23: 0.08, 24: 0.1, 25: 0.12, 0: 0.05 };   // kibble, bloops, squishes, pops and pips vary a little each time
+  let noiseBuf = null;
+  const VOLG = [0, 0.02, 0.035, 0.055, 0.08, 0.11, 0.15, 0.2, 0.27, 0.36, 0.5];   // same curve as the board
+  function play(id, vol) {
+    if (!soundOn || !ac || !vol) return; const seq = SND[id]; if (!seq) return; let t = ac.currentTime + 0.005;
+    const lv = VOLG[Math.min(10, vol)] / 0.2;   // level 7 = how the web version sounded before
+    const k = 1 + (Math.random() * 2 - 1) * (VARY[id] || 0);
+    for (const [f0, f1, d, w, amp, vib] of seq) {
+      if (w === "rest") { t += d; continue; }
+      const g = ac.createGain(), peak = 0.12 * amp * lv;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + d * 0.08);
+      g.gain.setValueAtTime(peak, t + d * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + d); g.connect(ac.destination);
+      if (w === "noise") {   // f0 > 0: the purr's low rumble, else a short hiss
+        if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate * 1.0, ac.sampleRate); const a = noiseBuf.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
+        const s = ac.createBufferSource(), f = ac.createBiquadFilter(); s.buffer = noiseBuf; f.type = "lowpass"; f.frequency.value = f0 > 0 ? 180 : 2500 * k;
+        if (f0 > 0) { const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 25; lg.gain.value = 0.5; lfo.connect(lg); lg.connect(g.gain); lfo.start(t); lfo.stop(t + d); }
+        s.connect(f); f.connect(g); s.start(t, Math.random() * 0.2); s.stop(t + d + 0.02);
+      } else {
+        const o = ac.createOscillator(); o.type = w === "wob" || w === "sine" ? "sine" : (w === "mew" ? "triangle" : w);
+        o.frequency.setValueAtTime(f0 * k, t); o.frequency.linearRampToValueAtTime(f1 * k, t + d);
+        if (vib > 0) { const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = w === "wob" ? 30 : 6; lg.gain.value = f0 * k * vib; lfo.connect(lg); lg.connect(o.frequency); lfo.start(t); lfo.stop(t + d + 0.02); }
+        o.connect(g); o.start(t); o.stop(t + d + 0.02);
+      }
+      t += d;
+    }
+  }
+
+  $("snd").onclick = (e) => { soundOn = !soundOn; e.target.classList.toggle("on", soundOn); e.target.textContent = soundOn ? "Sound on" : "Sound off"; audio(); };
+  $("reset").onclick = () => { try { localStorage.removeItem(KEY); } catch (e) {} $("msg").textContent = "Save deleted. Reload the page to start a new game."; };
+
+  // ---- loop (30 fps cap) ----
+  const t0 = performance.now(); let last = 0;
+  function frame(tm) {
+    requestAnimationFrame(frame);
+    if (tm - last < 33.3) return; last = tm;
+    imu();
+    X.tick(Math.floor(tm - t0), down, px, py);
+    for (let s; (s = X.snd_pop()) >= 0; ) play(s & 63, s >> 6);
+    cv.style.filter = "brightness(" + (0.12 + 0.88 * X.brightness() / 255).toFixed(3) + ")";   // the settings' brightness (and idle dimming)
+    if (X.save_dirty()) { try { const n = X.save_len(); const a = new Uint8Array(X.memory.buffer, X.save_ptr(), n); let s = ""; for (let i = 0; i < n; i++) s += String.fromCharCode(a[i]); localStorage.setItem(KEY, btoa(s)); } catch (e) {} }
+    if (!X.display_on()) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 368, 448); return; }
+    const fb = new Uint16Array(X.memory.buffer, X.fb_ptr(), 368 * 448), d = img.data;
+    for (let i = 0, j = 0; i < fb.length; i++, j += 4) { const v = fb[i]; d[j] = ((v >> 11) & 31) * 255 / 31; d[j + 1] = ((v >> 5) & 63) * 255 / 63; d[j + 2] = (v & 31) * 255 / 31; d[j + 3] = 255; }
+    octx.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = false; ctx.drawImage(off, 0, 0, 368, 448);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

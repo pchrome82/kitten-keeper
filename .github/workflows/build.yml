@@ -1,0 +1,23 @@
+# Builds the firmware on GitHub and attaches kitten-keeper-<board>-merged.bin, one per board (flash at 0x0) as a downloadable artifact.
+name: build-firmware
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board: [amoled18, amoled216]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install platformio esptool
+      - run: pio run -e ${{ matrix.board }}
+      - name: Merge into one image
+        run: |
+          B=.pio/build/${{ matrix.board }}
+          BA=$(find ~/.platformio/packages -name boot_app0.bin | head -1)
+          python -m esptool --chip esp32s3 merge_bin -o kitten-keeper-${{ matrix.board }}-merged.bin --flash_mode qio --flash_size 16MB \
+            0x0 $B/bootloader.bin 0x8000 $B/partitions.bin 0xe000 $BA 0x10000 $B/firmware.bin
+      - uses: actions/upload-artifact@v4
+        with: { name: "kitten-keeper-firmware-${{ matrix.board }}", path: "kitten-keeper-${{ matrix.board }}-merged.bin" }

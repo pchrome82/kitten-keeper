@@ -1,0 +1,131 @@
+// Pin map & I2C addresses for the Waveshare ESP32-S3-Touch-AMOLED-1.8
+// (SH8601 368x448 QSPI AMOLED, FT3168 touch, QMI8658 IMU, PCF85063 RTC, ES8311 codec, TCA9554 IO expander).
+// Source: Waveshare's own demo repo (examples/arduino/libraries/Mylibrary/pin_config.h).
+#pragma once
+
+// Three boards are supported; pick one with the PlatformIO environment (see platformio.ini):
+//   amoled18  : ESP32-S3-Touch-AMOLED-1.8   (368x448, CST816/FT3168 touch, resets through a TCA9554 expander)
+//   amoled216 : ESP32-S3-Touch-AMOLED-2.16  (480x480 CO5300, CST9220 touch, reset lines on GPIOs; -DKK_BOARD_AMOLED216)
+//   lcd183    : ESP32-S3-Touch-LCD-1.83     (240x284 ST7789P on plain SPI, CST816 touch, PWM backlight; -DKK_BOARD_LCD183)
+//               SHELVED: not built by default, no longer maintained (see platformio.ini)
+// The game always draws a 368x448 picture. On the 2.16" panel it sits 1:1 in the middle (the rest stays black,
+// which on an AMOLED is simply off). The 1.83" LCD is smaller than the picture: it is scaled down to fill the
+// 240x284 panel (smoothly, about 0.64x), and touches are scaled back up.
+#define GAME_W 368
+#define GAME_H 448
+
+#if defined(KK_BOARD_AMOLED216)
+// Pin map from Waveshare's wiki for the ESP32-S3-Touch-AMOLED-2.16 (docs.waveshare.com/ESP32-S3-Touch-AMOLED-2.16).
+#define LCD_SDIO0 4
+#define LCD_SDIO1 5
+#define LCD_SDIO2 6
+#define LCD_SDIO3 7
+#define LCD_SCLK 38
+#define LCD_CS 12
+#define LCD_RESET 39
+#define LCD_WIDTH 480
+#define LCD_HEIGHT 480
+#define LCD_COL_OFFSET 0
+
+#define IIC_SDA 15
+#define IIC_SCL 14
+#define TP_INT 11
+#define TP_RESET 40
+
+#define I2S_MCK_IO 42
+#define I2S_BCK_IO 9
+#define I2S_WS_IO 45
+#define I2S_DI_IO 10
+#define I2S_DO_IO 8
+#define PA_PIN 46
+
+#define ADDR_CST92XX 0x5A   // touch (CST9220)
+// Panel / touch orientation. Not yet checked on real hardware: if the picture or the touch comes out turned or
+// mirrored, change these in platformio.ini (build_flags) rather than here.
+#ifndef KK_LCD_MADCTL
+#define KK_LCD_MADCTL -1    // -1 = leave the panel's default scan direction; Waveshare's demo writes 0xA0
+#endif
+#ifndef KK_TOUCH_SWAP_XY
+#define KK_TOUCH_SWAP_XY 0
+#endif
+#ifndef KK_TOUCH_MIRROR_X
+#define KK_TOUCH_MIRROR_X 0
+#endif
+#ifndef KK_TOUCH_MIRROR_Y
+#define KK_TOUCH_MIRROR_Y 0
+#endif
+#elif defined(KK_BOARD_LCD183)
+// Pin map from Waveshare's demo repo for the ESP32-S3-Touch-LCD-1.83 (examples/arduino/libraries/Mylibrary/pin_config.h)
+// and, for the audio pins, their ESP-IDF board support header (bsp/esp32_s3_touch_lcd_1_83.h).
+// Not yet checked on real hardware.
+#define LCD_DC 4
+#define LCD_CS 5
+#define LCD_SCLK 6
+#define LCD_MOSI 7
+#define LCD_RESET 38
+#define LCD_BL 40           // backlight (PWM)
+// 0 = Arduino_GFX's stock ST7789 start-up (default: it looked better on the device);
+// 1 = start the panel bare with its factory voltages and gamma, like Waveshare's ESP-IDF code (tried: looked worse).
+#ifndef KK_LCD_PANEL_INIT
+#define KK_LCD_PANEL_INIT 0
+#endif
+// Colour correction for the LCD (the art was made for an AMOLED; a backlit LCD shows it flat and milky). Both are
+// percentages, 100 = leave alone; change them with -DKK_LCD_GAMMA=... / -DKK_LCD_SAT=... in platformio.ini.
+#ifndef KK_LCD_GAMMA
+#define KK_LCD_GAMMA 150    // above 100 darkens the mid-tones and shadows (white and black stay where they are). 135 was the last tried
+#endif
+#ifndef KK_LCD_SAT
+#define KK_LCD_SAT 125      // above 100 makes the colours stronger
+#endif
+#define LCD_WIDTH 240
+#define LCD_HEIGHT 284
+#ifndef KK_LCD_SPI_HZ
+#define KK_LCD_SPI_HZ 40000000   // a full frame is ~136 KB: 40 MHz moves it in ~27 ms (try 80000000 for a faster picture)
+#endif
+
+#define IIC_SDA 15
+#define IIC_SCL 14
+#define TP_INT 13
+#define TP_RESET 39
+
+#define I2S_MCK_IO 16
+#define I2S_BCK_IO 9
+#define I2S_WS_IO 45
+#define I2S_DI_IO 10
+#define I2S_DO_IO 8
+#define PA_PIN 46
+#else
+
+#define LCD_SDIO0 4
+#define LCD_SDIO1 5
+#define LCD_SDIO2 6
+#define LCD_SDIO3 7
+#define LCD_SCLK 11
+#define LCD_CS 12
+#define LCD_WIDTH 368
+#define LCD_HEIGHT 448
+#define LCD_RESET -1        // (reset lines are on the TCA9554 expander)
+#define LCD_COL_OFFSET 16
+
+#define IIC_SDA 15
+#define IIC_SCL 14
+#define TP_INT 21
+
+#define I2S_MCK_IO 16
+#define I2S_BCK_IO 9
+#define I2S_WS_IO 45
+#define I2S_DI_IO 10
+#define I2S_DO_IO 8
+#define PA_PIN 46
+
+#endif
+
+#define GAME_X ((LCD_WIDTH - GAME_W) / 2)    // where the game picture sits on the panel
+#define GAME_Y ((LCD_HEIGHT - GAME_H) / 2)
+
+#define ADDR_TCA9554 0x20   // IO expander: EXIO0..2 = display / touch / etc. reset lines
+#define ADDR_FT3168 0x38    // touch (original board)
+#define ADDR_CST816 0x15    // touch (V2 board)
+#define ADDR_QMI8658 0x6B   // IMU (0x6A on some revisions)
+#define ADDR_PCF85063 0x51  // RTC
+#define ADDR_AXP2101 0x34   // power manager (battery %)
