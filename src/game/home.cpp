@@ -1025,7 +1025,7 @@ void Game::homeInput() {
     return;
   }
   // a gift box waiting to be opened
-  if (sv.pad9[0] && tapIn(GIFT_X - 13, GIFT_Y - 24, 26, 28) && inRoom) { openGift(); return; }
+  if (sv.pad9[0] && tapIn(GIFT_X - 13, GIFT_Y - 26, 32, 30) && inRoom) { openGift(); return; }
   // the catch they brought home
   if (pet.d.preyOnFloor && holdPrey_ <= 0 && tapIn(96, 152, 32, 28) && inRoom) {
     int v = preyValue(pet.d.preyOnFloor);

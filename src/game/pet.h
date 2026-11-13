@@ -43,6 +43,7 @@ constexpr float DAY_EMPTY_HOURS = 12.0f;          // junior / adult / senior: on
 constexpr float DAY_EMPTY_HOURS_KITTEN = 2.0f;    // a kitten needs you every couple of hours
 constexpr float NIGHT_AWAKE_SECS = 15 * 60.0f;
 inline bool isDaytime(int hour) { return hour >= DAY_START && hour < DAY_END; }
+constexpr float EXERCISE_WEIGHT_LOSS = 0.67f;   // play and Explore slim the cat by a third less than their games' nominal figures
 constexpr float CHONK_BLACK_HOLE = 100.0f;
 // The opposite secret: whittled right down to weight 6 by exercise and lean (yellow-zone) meals while healthy and fed, they shrink
 // into a tiny bright sun (starving their can't get there: their health drops long before they're that light).

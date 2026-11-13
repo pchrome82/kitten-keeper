@@ -183,7 +183,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.2.4", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.2.5", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -995,7 +995,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.2.4", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.2.5", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
@@ -1405,7 +1405,7 @@ struct Costume { uint8_t slot, id; const char* name; int price; };   // price 0 
 static const Costume COSTUMES[] = {   // (at most 7 per slot: the wardrobe shows "none" + 7)
   {0, HAT_TOP, "Top Hat", 30}, {0, HAT_PARTY, "Party Hat", 15}, {0, HAT_CROWN, "Crown", 0}, {0, HAT_WIZARD, "Wizard Hat", 0},
   {0, HAT_SANTA, "Santa Hat", 0}, {0, HAT_FLOWER, "Flower Crown", 0}, {0, HAT_COWBOY, "Cowboy Hat", -1},
-  {1, GL_SUN, "Sunglasses", 25}, {1, GL_HEART, "Heart Glasses", 25}, {1, GL_STAR, "Star Shades", -1}, {1, GL_MONOCLE, "Monocle", -1}, {1, GL_3D, "3-D Specs", -1},
+  {1, GL_SUN, "Sunglasses", 25}, {1, GL_HEART, "Heart Glasses", 25}, {1, GL_STAR, "Star Shades", -1}, {1, GL_MONOCLE, "Monocle", -1}, {1, GL_3D, "3-D Specs", -1}, {1, GL_GOGGLES, "Cave Goggles", 0},
   {2, NK_BOW, "Bow Tie", 15}, {2, NK_SCARF, "Scarf", 20}, {2, NK_BELL, "Bell Collar", 10}, {2, NK_BANDANA, "Bandana", -1}, {2, NK_PEARLS, "Pearls", -1}, {2, NK_TIE, "Necktie", -1},
   {3, BD_CAPE, "Hero Cape", 30}, {3, BD_SADDLE, "Hamster Saddle", 45}, {3, BD_WINGS, "Angel Wings", -1}};
 static const char* WARD_TAB[4] = {"HAT", "EYES", "NECK", "BODY"};
@@ -1462,8 +1462,7 @@ void Game::drawGiftBox(Canvas& cv) {
   cv.rect(x - 1, y - 14, 3, 14, rib); cv.vline(x - 1, y - 14, 14, ribL);                    // ribbon
   cv.disc(x - 3, y - 17, 2, rib); cv.disc(x + 4, y - 17, 2, rib); cv.set(x - 3, y - 18, ribL); cv.set(x + 4, y - 18, ribL); cv.rect(x, y - 17, 2, 2, ribL);   // bow
   if (((int)(anim_ * 3)) % 4 == 0) cv.set(x + 7, y - 20, rgb(255, 255, 255));               // sparkle
-  const int by = GIFT_Y - 30 - (int)((0.5f + 0.5f * sinf(anim_ * 4)) * 2);
-  cv.tri(x - 4, by, x + 4, by, x, by + 5, rgb(255, 226, 120));
+  cv.text(x + 12, GIFT_Y - 22 - (int)((0.5f + 0.5f * sinf(anim_ * 4)) * 2), "!", rgb(255, 226, 120));   // "tap me", beside the box (above it is the litter tray)
 }
 
 void Game::devGift() { sv.pad9[0] = 0; giftArrives(1); }   // dev: a gift box, now (the web page's developer panel)

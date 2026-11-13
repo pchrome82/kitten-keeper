@@ -3,13 +3,6 @@
 #include "pet.h"
 #include <stddef.h>
 
-// A fresh save's display settings. A board can set its own in platformio.ini (the 1.83" LCD does).
-#ifndef KK_DEFAULT_BRIGHT
-#define KK_DEFAULT_BRIGHT 8        // 1..10
-#endif
-#ifndef KK_DEFAULT_SCREEN_OFF
-#define KK_DEFAULT_SCREEN_OFF 6    // 0..8: 1s 3s 5s 10s 15s 30s 1min 5min never
-#endif
 
 namespace cat {
 

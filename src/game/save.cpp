@@ -19,8 +19,8 @@ void saveDefaults(SaveData& s) {
   s.size = sizeof(SaveData);
   s.mode = MODE_UNSET;
   s.volume = 2;
-  s.brightness = KK_DEFAULT_BRIGHT;
-  s.eq[2] = KK_DEFAULT_SCREEN_OFF;   // screen off after 1 minute (30 s on the LCD)
+  s.brightness = 8;
+  s.eq[2] = 6;    // screen off after 1 minute
   s.eq[3] = 11;   // settings version (0..10 volume / brightness + screen timeout)
   s.alarmH = 7;
   s.alarmM = 0;

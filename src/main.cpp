@@ -12,7 +12,7 @@ static cat::Game game(&platform);
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("\n[boot] Kitten Keeper v1.2.4");
+  Serial.println("\n[boot] Kitten Keeper v1.2.5");
   cat::gShowTouch = false;   // true = debug rings where touches land + raw tilt numbers on the pour screen   // baked pixel-art cats (same look as the web build)
   hal::begin();
   game.begin();

@@ -157,10 +157,10 @@ void Game::begin() {
     sv.brightness = br[sv.brightness > 5 ? 0 : sv.brightness];
     sv.eq[3] = 10;
   }
-  if (sv.eq[3] != 11) { sv.eq[2] = KK_DEFAULT_SCREEN_OFF; sv.eq[3] = 11; }   // before the screen-timeout setting: 1 minute
-  if (sv.eq[2] > 8) sv.eq[2] = KK_DEFAULT_SCREEN_OFF;
+  if (sv.eq[3] != 11) { sv.eq[2] = 6; sv.eq[3] = 11; }   // before the screen-timeout setting: 1 minute
+  if (sv.eq[2] > 8) sv.eq[2] = 6;
   if (sv.volume > 10) sv.volume = 2;
-  if (sv.brightness < 1 || sv.brightness > 10) sv.brightness = KK_DEFAULT_BRIGHT;
+  if (sv.brightness < 1 || sv.brightness > 10) sv.brightness = 8;
   if (!sv.fallbackClock) sv.fallbackClock = toEpoch({2026, 1, 1, 12, 0, 0});
 
   updateClock();

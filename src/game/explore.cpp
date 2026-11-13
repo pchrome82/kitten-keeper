@@ -45,7 +45,8 @@ enum Tile : uint8_t {
   T_ROAD, T_WALK, T_ZEBRA, T_BLDG, T_TRASH,                                     // the city
   T_BED,                                                                         // a bed to nap in (houses, the hermit's cave)
   T_BUSH,                                                                        // a thick bush (one of them hides a secret cave: tap it)
-  T_HOLE                                                                         // a crack in the Old Cave's floor: step in to drop into the Deep Tunnels
+  T_HOLE,                                                                        // a crack in the Old Cave's floor: step in to drop into the Deep Tunnels
+  T_CRACK                                                                        // an odd, cracked bit of wall (the Hermit's cave, behind him): tap it for a secret
 };
 
 // places (journal bits 8+id) and which screen they're on
@@ -291,7 +292,8 @@ void buildRoom(uint8_t m[EXR][EXC], int place) {
     m[y][x] = T_WALL;
   }
   if (place == P_TCAVE) { m[2][2] = T_CHEST; m[2][8] = T_CHEST; m[2][3] = m[3][2] = m[2][7] = m[3][8] = T_FLOOR; m[8][1] = T_HOLE; }   // (the hole: tucked in the corner)
-  if (place == P_HERMIT) { m[3][5] = T_NPC; m[3][4] = m[3][6] = m[4][5] = T_FLOOR; m[7][8] = T_BED; m[7][7] = m[6][8] = T_FLOOR; }
+  if (place == P_HERMIT) { m[3][5] = T_NPC; m[3][4] = m[3][6] = m[4][5] = T_FLOOR; m[7][8] = T_BED; m[7][7] = m[6][8] = T_FLOOR;
+    m[1][5] = T_CRACK; m[1][4] = m[1][6] = m[2][4] = m[2][5] = m[2][6] = T_FLOOR; }   // the secret: a cracked lump on the back wall right behind the hermit, above his hat (never by the bed)
   if (place == P_SECRET) { m[3][5] = T_NPC; m[3][4] = m[3][6] = m[4][5] = T_FLOOR; }
   if (place == P_KING) { m[2][5] = T_NPC; m[2][4] = m[2][6] = m[3][5] = m[3][4] = m[3][6] = T_FLOOR; }
   for (int y = 4; y <= 8; y++) m[y][5] = T_FLOOR;   // a clear way in
@@ -420,6 +422,18 @@ void drawTile(Canvas& cv, uint8_t t, int x, int y, int tx, int ty, int salt, flo
     case T_WALL: {
       if (cave) { cv.rect(x, y, TS, TS, rgb(70, 60, 74)); cv.set(x + (int)(h % 14), y + (int)((h >> 4) % 14), rgb(96, 86, 100)); cv.hline(x, y + TS - 1, TS, rgb(40, 34, 44)); }
       else { cv.rect(x, y, TS, TS, rgb(214, 170, 150)); for (int k = 2; k < TS; k += 6) cv.vline(x + k, y, TS, rgb(200, 150, 132)); cv.hline(x, y + TS - 3, TS, rgb(150, 100, 80)); }
+      break; }
+    case T_CRACK: {   // a lumpy, cracked bit of wall that bulges out; once opened, a dark hollow
+      cv.rect(x, y, TS, TS, rgb(54, 46, 58));                                                   // the floor around it
+      cv.ellipse(x + 8, y + 8, 7, 8, rgb(40, 34, 44)); cv.ellipse(x + 8, y + 7, 6, 7, rgb(86, 74, 90));   // the bulge
+      cv.ellipse(x + 6, y + 5, 2, 2, rgb(104, 92, 108));
+      if (chestOpen) { cv.ellipse(x + 8, y + 9, 4, 4, rgb(16, 12, 20)); cv.set(x + 5, y + 13, rgb(86, 74, 90)); cv.set(x + 11, y + 14, rgb(86, 74, 90)); }   // broken open
+      else {
+        const Color cr = rgb(30, 24, 34);   // zig-zag cracks
+        cv.line(x + 8, y + 1, x + 6, y + 5, cr); cv.line(x + 6, y + 5, x + 9, y + 8, cr); cv.line(x + 9, y + 8, x + 7, y + 12, cr);
+        cv.line(x + 9, y + 8, x + 13, y + 9, cr); cv.line(x + 6, y + 5, x + 3, y + 6, cr);
+        if (((int)(tm * 1.5f)) % 5 == 0) cv.set(x + 10, y + 7, rgb(255, 230, 160));   // a faint glint inside, now and then
+      }
       break; }
     case T_BED:
       if (cave) {   // a nest of straw
@@ -886,6 +900,15 @@ void Game::screenExplore(Canvas& cv) {
           for (int i = 0; i < 10; i++) spawn(OX + tx * TS + 8.0f, OY + ty * TS + 6.0f, 4, rgb(70, 160, 80), (float)((i - 5) * 10), -30, 0.8f);
           sound(SND_POOF); say("A hidden cave behind the bush!"); recordMilestone(MS_CAVE);
           autosave(true);
+        } else if (t == T_CRACK) {   // the Hermit's secret
+          if ((sv.ownGl >> GL_GOGGLES) & 1) (sound(SND_TAP), say("Just an empty hollow."));
+          else {
+            sv.ownGl |= (uint8_t)(1u << GL_GOGGLES);
+            for (int i = 0; i < 10; i++) spawn(OX + tx * TS + 8.0f, OY + ty * TS + 8.0f, 4, rgb(120, 104, 124), (float)((i - 5) * 10), -25, 0.7f);
+            sound(SND_WIN);
+            dialog("SECRET!", "The cracked wall crumbles...", "CAVE GOGGLES!", "Find them in the Wardrobe.", "WOW", nullptr, 0, 0);
+            autosave(true);
+          }
         } else if (t == T_LOOSE) {
           if (sv.ex.rocksToday & (1u << bit)) (sound(SND_TAP), say("Just dirt under there."));
           else { sv.ex.rocksToday |= 1u << bit; if ((pet.rnd() % 100) < 60) findHairball("Under the rock:"); else (sound(SND_TAP), say("Only a beetle. Eww.")); }
@@ -1233,7 +1256,8 @@ void Game::screenExplore(Canvas& cv) {
       bool sparkle = (t == T_LOOSE && !(sv.ex.rocksToday & (1u << bit))) || (t == T_NEST && !(sv.ex.nestsToday & (1u << bit))) ||
                      (t == T_TRASH && !(sv.ex.trashToday & (1u << (sy * 2 + (tx < 5 ? 0 : 1)))));
       int id = t == T_CHEST ? chestId(room, sx, sy, tx) : -1;
-      drawTile(cv, t, x, y, tx + sx * EXC, ty + sy * EXR, room + 2, g.t, cave, sparkle, id >= 0 && (sv.ex.chests & (1u << id)), up, dn, lf, rt);
+      const bool opened = t == T_CRACK ? ((sv.ownGl >> GL_GOGGLES) & 1) != 0 : (id >= 0 && (sv.ex.chests & (1u << id)));
+      drawTile(cv, t, x, y, tx + sx * EXC, ty + sy * EXR, room + 2, g.t, cave, sparkle, opened, up, dn, lf, rt);
     }
     // whole buildings on top of their tiles
     if (room < 0) for (int ty = 0; ty < EXR; ty++) for (int tx = 0; tx < EXC; tx++) {
@@ -1265,11 +1289,12 @@ void Game::screenExplore(Canvas& cv) {
     }
     if (g.room == P_HOME) {}
   }
-  // critters
-  if (g.state != 1 && g.room < 0)
+  // critters (and, indoors, a stray cat curled up on the bed)
+  if (g.state != 1)
     for (int i = 0; i < g.nmob; i++) {
       const ExMob& m = g.mob[i];
       if (!m.alive) continue;
+      if (g.room >= 0 && m.kind != MOB_WILDCAT) continue;
       if (m.kind == MOB_CAR) {
         static const Color cc[4] = {rgb(220, 50, 50), rgb(60, 120, 220), rgb(250, 200, 50), rgb(240, 240, 240)};
         int x = (int)m.x, y = (int)m.y; bool l = m.vx < 0;
@@ -1345,6 +1370,14 @@ void Game::screenExplore(Canvas& cv) {
       const int base = g.room == P_DEEP ? 20 : 34;   // the Deep Tunnels: pitch dark, they see only a step or two
       int r = base + ffc * 9 / 2; if (r > base * 2) r = base * 2;
       darkness(cv, (int)g.x, (int)g.y, r, g.room == P_DEEP ? 4 : 18);
+      for (int i = 0; i < g.nmob; i++) {   // a stray on the bed: its eyes glint in the dark, so you know it's there
+        const ExMob& m = g.mob[i];
+        if (!m.alive || m.kind != MOB_WILDCAT) continue;
+        const int mx = (int)m.x, my = (int)m.y;
+        if (fabsf(m.x - g.x) < r * 0.8f && fabsf(m.y - g.y) < r * 0.8f) continue;   // (close by, it's in the light anyway)
+        if (fmodf(g.t, 3.0f) > 0.15f) { cv.set(mx - 5, my - 10, rgb(255, 230, 120)); cv.set(mx - 2, my - 10, rgb(255, 230, 120)); }   // (a blink now and then)
+        if (((int)(g.t * 2)) & 1) cv.text(mx + 4, my - 20, "!", rgb(255, 120, 120));
+      }
       for (int k = 0; k < ffc; k++) {
         const float a = g.t * 2.2f + k * 1.2566f;
         cv.set((int)(g.x + cosf(a) * 9), (int)(g.y - 4 + sinf(a) * 5), (((int)(g.t * 6) + k) & 1) ? rgb(230, 255, 150) : rgb(160, 200, 90));

@@ -39,13 +39,7 @@ static bool rd(uint8_t addr, uint8_t reg, uint8_t* buf, uint8_t n) {
 // display
 // ---------------------------------------------------------------------------------------
 static Arduino_DataBus* bus = nullptr;
-#if defined(KK_BOARD_LCD183)
-static Arduino_ST7789* gfx = nullptr;   // 240x284 IPS LCD on 4-wire SPI
-static uint16_t* full = nullptr;         // the whole 368x448 game picture (PSRAM), scaled down to the panel strip by strip
-static constexpr int SROWS = 32;         // panel rows per strip
-#else
 static Arduino_CO5300* gfx = nullptr;   // V2 board display driver (the original board used SH8601)
-#endif
 static uint16_t* chunk = nullptr;        // DMA-capable scratch for the 2x upscaler
 static constexpr int LW = 184, LH = 224;
 static constexpr int ROWS = 16;          // logical rows per chunk -> 32 physical rows
@@ -143,15 +137,7 @@ void begin() {
   digitalWrite(TP_RESET, HIGH); delay(120);
   { uint8_t t[12]; Serial.println(cst92Read(t, sizeof(t)) ? "[hal] touch CST9220 ok" : "[hal] touch CST9220 not answering"); }
 #else
-#if defined(KK_BOARD_LCD183)
-  // touch (CST816): its reset line is a GPIO on this board (no expander)
-  pinMode(TP_INT, INPUT);
-  pinMode(TP_RESET, OUTPUT);
-  digitalWrite(TP_RESET, LOW); delay(20);
-  digitalWrite(TP_RESET, HIGH); delay(60);
-#else
   expanderReset();
-#endif
 
   // touch (CST816): keep it awake so the first tap after a pause isn't swallowed, report while touched
   delay(50);
@@ -161,35 +147,6 @@ void begin() {
 #endif
 
   // display
-#if defined(KK_BOARD_LCD183)
-  pinMode(LCD_BL, OUTPUT);
-  digitalWrite(LCD_BL, LOW);   // backlight off until the first picture is up
-  bus = new Arduino_ESP32SPI(LCD_DC, LCD_CS, LCD_SCLK, LCD_MOSI);
-#if KK_LCD_PANEL_INIT
-  // Start the panel the way Waveshare's own ESP-IDF code does: wake it, 16-bit colour, normal scan, and nothing else,
-  // so it keeps its factory voltages and gamma. (Arduino_GFX's stock ST7789 start-up writes its own power, VCOM and
-  // gamma values, tuned for a different panel: on this one they wash the colours out.) The IPS flag then sends INVON.
-  static const uint8_t lcdInit[] = {
-    BEGIN_WRITE, WRITE_COMMAND_8, 0x11, END_WRITE,      // SLPOUT
-    DELAY, 120,
-    BEGIN_WRITE,
-    WRITE_C8_D8, 0x3A, 0x55,                            // COLMOD: 16-bit
-    WRITE_C8_D8, 0x36, 0x00,                            // MADCTL: normal scan, RGB order
-    WRITE_COMMAND_8, 0x13,                              // NORON
-    WRITE_COMMAND_8, 0x29,                              // DISPON
-    END_WRITE,
-    DELAY, 20};
-  gfx = new Arduino_ST7789(bus, LCD_RESET, 0 /* rotation */, true /* IPS */, LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0, lcdInit, sizeof(lcdInit));
-#else
-  gfx = new Arduino_ST7789(bus, LCD_RESET, 0 /* rotation */, true /* IPS */, LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0);   // the library's stock start-up
-#endif
-  if (!gfx->begin(KK_LCD_SPI_HZ)) Serial.println("[hal] gfx->begin() failed");
-  gfx->fillScreen(0x0000);
-  chunk = (uint16_t*)heap_caps_malloc((size_t)LCD_WIDTH * SROWS * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-  full = (uint16_t*)heap_caps_malloc((size_t)GAME_W * GAME_H * sizeof(uint16_t), MALLOC_CAP_SPIRAM);
-  if (!full) full = (uint16_t*)malloc((size_t)GAME_W * GAME_H * sizeof(uint16_t));
-  if (!chunk || !full) Serial.println("[hal] out of memory for the display buffers!");
-#else
   bus = new Arduino_ESP32QSPI(LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
   gfx = new Arduino_CO5300(bus, LCD_RESET < 0 ? GFX_NOT_DEFINED : LCD_RESET /* 1.8": reset handled by the expander */, 0, LCD_WIDTH, LCD_HEIGHT, LCD_COL_OFFSET, 0, 0, 0);
   if (!gfx->begin()) Serial.println("[hal] gfx->begin() failed");
@@ -200,7 +157,6 @@ void begin() {
   gfx->setBrightness(0);
   chunk = (uint16_t*)heap_caps_malloc((size_t)LCD_WIDTH * ROWS * 2 * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
   if (!chunk) Serial.println("[hal] out of DMA memory for display chunk!");
-#endif
 
   // what is on the I2C bus (handy when bringing up a new board)
   Serial.print("[hal] i2c devices:");
@@ -247,31 +203,11 @@ static void panelOn() {
   panelOff = false;
 }
 
-#if defined(KK_BOARD_LCD183)
-// The LCD's backlight: PWM on LCD_BL. Fully off is a plain low pin (it stays low through light sleep).
-static void backlight(uint8_t level) {
-  static bool pwm = false;
-  if (level == 0) {
-    if (pwm) { ledcDetach(LCD_BL); pwm = false; }
-    pinMode(LCD_BL, OUTPUT);
-    digitalWrite(LCD_BL, LOW);
-    return;
-  }
-  if (!pwm) pwm = ledcAttach(LCD_BL, 20000, 8);
-  if (pwm) ledcWrite(LCD_BL, level); else digitalWrite(LCD_BL, HIGH);
-
-}
-#endif
-
 void setBrightness(uint8_t level) {
   if (!gfx || level == lastBright) return;
   lastBright = level;
   if (level > 0) panelOn();
-#if defined(KK_BOARD_LCD183)
-  backlight(level);
-#else
   gfx->setBrightness(level);
-#endif
   if (level == 0 && !panelOff) { gfx->displayOff(); panelOff = true; }   // an AMOLED draws nothing when black, but its driver still burns a little
 }
 
@@ -288,54 +224,6 @@ void setPowerSave(bool on) {
   setCpuFrequencyMhz(on ? (netUpFlag() ? 160 : 80) : cpuNormalMhz);
 }
 
-#if defined(KK_BOARD_LCD183)
-// The 368x448 picture, scaled down to the 240x284 panel with a bilinear filter (so the 2x pixel art and the 5x7 text
-// stay even instead of dropping rows). Each panel pixel blends the 2x2 picture pixels around its centre; the blend
-// works on RGB565 spread out to 32 bits (green in the top half), which leaves room for 5-bit weights.
-void flush(const uint16_t* src, const uint16_t* room, bool keyed, int tr, int tg, int tb) {
-  if (!gfx || !chunk || !full) return;
-  static uint16_t xi[LCD_WIDTH], yi[LCD_HEIGHT];   // left / top picture pixel for each panel column / row
-  static uint8_t xw[LCD_WIDTH], yw[LCD_HEIGHT];    // weight (0..31) of the next one along
-  static uint8_t g5[32], g6[64];                   // the gamma curve for a 5-bit (red, blue) / 6-bit (green) channel, as 0..255
-  static bool tables = false;
-  if (!tables) {
-    tables = true;
-    for (int i = 0; i < 32; i++) g5[i] = (uint8_t)(powf(i / 31.0f, KK_LCD_GAMMA / 100.0f) * 255.0f + 0.5f);
-    for (int i = 0; i < 64; i++) g6[i] = (uint8_t)(powf(i / 63.0f, KK_LCD_GAMMA / 100.0f) * 255.0f + 0.5f);
-    for (int x = 0; x < LCD_WIDTH; x++) { const int num = (2 * x + 1) * GAME_W - LCD_WIDTH, den = 2 * LCD_WIDTH; xi[x] = (uint16_t)(num / den); xw[x] = (uint8_t)((num % den) * 32 / den); }
-    for (int y = 0; y < LCD_HEIGHT; y++) { const int num = (2 * y + 1) * GAME_H - LCD_HEIGHT, den = 2 * LCD_HEIGHT; yi[y] = (uint16_t)(num / den); yw[y] = (uint8_t)((num % den) * 32 / den); }
-  }
-  panelOn();               // (the backlight is still off: the brightness comes after the picture)
-  cat::composeRows(src, room, keyed, tr, tg, tb, full, 0, LH);
-  const uint32_t M = 0x07E0F81Fu;
-  for (int oy0 = 0; oy0 < LCD_HEIGHT; oy0 += SROWS) {
-    const int n = LCD_HEIGHT - oy0 < SROWS ? LCD_HEIGHT - oy0 : SROWS;
-    uint16_t* o = chunk;
-    for (int r = 0; r < n; r++) {
-      const int sy = flipped ? LCD_HEIGHT - 1 - (oy0 + r) : oy0 + r;   // 180 degrees: read the picture from the far end
-      const uint16_t* a = full + (size_t)yi[sy] * GAME_W;
-      const uint16_t* b = a + GAME_W;
-      const uint32_t wy = yw[sy];
-      for (int ox = 0; ox < LCD_WIDTH; ox++) {
-        const int sx = flipped ? LCD_WIDTH - 1 - ox : ox;
-        const int x0 = xi[sx];
-        const uint32_t wx = xw[sx];
-        const uint32_t a0 = (a[x0] | ((uint32_t)a[x0] << 16)) & M, a1 = (a[x0 + 1] | ((uint32_t)a[x0 + 1] << 16)) & M;
-        const uint32_t b0 = (b[x0] | ((uint32_t)b[x0] << 16)) & M, b1 = (b[x0 + 1] | ((uint32_t)b[x0 + 1] << 16)) & M;
-        const uint32_t top = ((a0 * (32 - wx) + a1 * wx) >> 5) & M, bot = ((b0 * (32 - wx) + b1 * wx) >> 5) & M;
-        const uint32_t e = ((top * (32 - wy) + bot * wy) >> 5) & M;
-        // colour correction (see KK_LCD_GAMMA / KK_LCD_SAT in board.h): the gamma curve, then push each channel away from the grey
-        int cr = g5[(e >> 11) & 31], cg = g6[(e >> 21) & 63], cb = g5[e & 31];
-        const int lum = (cr * 77 + cg * 150 + cb * 29) >> 8;
-        cr = lum + (cr - lum) * KK_LCD_SAT / 100; cg = lum + (cg - lum) * KK_LCD_SAT / 100; cb = lum + (cb - lum) * KK_LCD_SAT / 100;
-        cr = cr < 0 ? 0 : (cr > 255 ? 255 : cr); cg = cg < 0 ? 0 : (cg > 255 ? 255 : cg); cb = cb < 0 ? 0 : (cb > 255 ? 255 : cb);
-        *o++ = (uint16_t)(((cr >> 3) << 11) | ((cg >> 2) << 5) | (cb >> 3));
-      }
-    }
-    gfx->draw16bitRGBBitmap(0, oy0, chunk, LCD_WIDTH, n);
-  }
-}
-#else
 void flush(const uint16_t* src, const uint16_t* room, bool keyed, int tr, int tg, int tb) {
   if (!gfx || !chunk) return;
   panelOn();               // (still black: the brightness comes after the picture)
@@ -350,7 +238,6 @@ void flush(const uint16_t* src, const uint16_t* room, bool keyed, int tr, int tg
     } else gfx->draw16bitRGBBitmap(GAME_X, GAME_Y + ly * 2, chunk, PW, ROWS * 2);
   }
 }
-#endif
 
 // ---------------------------------------------------------------------------------------
 // touch (FT3168): regs 0x02.. = finger count, X1H, X1L, Y1H, Y1L
@@ -401,12 +288,6 @@ bool readTouch(int& x, int& y) {
   if (got && (b[0] & 0x0F) > 0) {
     lx = ((b[1] & 0x0F) << 8) | b[2];
     ly = ((b[3] & 0x0F) << 8) | b[4];
-#if defined(KK_BOARD_LCD183)
-#if KK_TOUCH_LOG
-    if (missed > 2) Serial.printf("[touch] panel %d,%d\n", lx, ly);
-#endif
-    lx = lx * GAME_W / LCD_WIDTH; ly = ly * GAME_H / LCD_HEIGHT;   // panel coords (240x284) -> the game picture (368x448)
-#endif
 #endif
 #if KK_TOUCH_LOG
     if (missed > 2) Serial.printf("[touch] down at %d,%d\n", lx, ly);   // raw controller coords, for calibration

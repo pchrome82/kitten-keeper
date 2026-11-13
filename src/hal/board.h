@@ -3,14 +3,11 @@
 // Source: Waveshare's own demo repo (examples/arduino/libraries/Mylibrary/pin_config.h).
 #pragma once
 
-// Three boards are supported; pick one with the PlatformIO environment (see platformio.ini):
+// Two boards are supported; pick one with the PlatformIO environment (see platformio.ini):
 //   amoled18  : ESP32-S3-Touch-AMOLED-1.8   (368x448, CST816/FT3168 touch, resets through a TCA9554 expander)
 //   amoled216 : ESP32-S3-Touch-AMOLED-2.16  (480x480 CO5300, CST9220 touch, reset lines on GPIOs; -DKK_BOARD_AMOLED216)
-//   lcd183    : ESP32-S3-Touch-LCD-1.83     (240x284 ST7789P on plain SPI, CST816 touch, PWM backlight; -DKK_BOARD_LCD183)
-//               SHELVED: not built by default, no longer maintained (see platformio.ini)
 // The game always draws a 368x448 picture. On the 2.16" panel it sits 1:1 in the middle (the rest stays black,
-// which on an AMOLED is simply off). The 1.83" LCD is smaller than the picture: it is scaled down to fill the
-// 240x284 panel (smoothly, about 0.64x), and touches are scaled back up.
+// which on an AMOLED is simply off).
 #define GAME_W 368
 #define GAME_H 448
 
@@ -54,46 +51,6 @@
 #ifndef KK_TOUCH_MIRROR_Y
 #define KK_TOUCH_MIRROR_Y 0
 #endif
-#elif defined(KK_BOARD_LCD183)
-// Pin map from Waveshare's demo repo for the ESP32-S3-Touch-LCD-1.83 (examples/arduino/libraries/Mylibrary/pin_config.h)
-// and, for the audio pins, their ESP-IDF board support header (bsp/esp32_s3_touch_lcd_1_83.h).
-// Not yet checked on real hardware.
-#define LCD_DC 4
-#define LCD_CS 5
-#define LCD_SCLK 6
-#define LCD_MOSI 7
-#define LCD_RESET 38
-#define LCD_BL 40           // backlight (PWM)
-// 0 = Arduino_GFX's stock ST7789 start-up (default: it looked better on the device);
-// 1 = start the panel bare with its factory voltages and gamma, like Waveshare's ESP-IDF code (tried: looked worse).
-#ifndef KK_LCD_PANEL_INIT
-#define KK_LCD_PANEL_INIT 0
-#endif
-// Colour correction for the LCD (the art was made for an AMOLED; a backlit LCD shows it flat and milky). Both are
-// percentages, 100 = leave alone; change them with -DKK_LCD_GAMMA=... / -DKK_LCD_SAT=... in platformio.ini.
-#ifndef KK_LCD_GAMMA
-#define KK_LCD_GAMMA 150    // above 100 darkens the mid-tones and shadows (white and black stay where they are). 135 was the last tried
-#endif
-#ifndef KK_LCD_SAT
-#define KK_LCD_SAT 125      // above 100 makes the colours stronger
-#endif
-#define LCD_WIDTH 240
-#define LCD_HEIGHT 284
-#ifndef KK_LCD_SPI_HZ
-#define KK_LCD_SPI_HZ 40000000   // a full frame is ~136 KB: 40 MHz moves it in ~27 ms (try 80000000 for a faster picture)
-#endif
-
-#define IIC_SDA 15
-#define IIC_SCL 14
-#define TP_INT 13
-#define TP_RESET 39
-
-#define I2S_MCK_IO 16
-#define I2S_BCK_IO 9
-#define I2S_WS_IO 45
-#define I2S_DI_IO 10
-#define I2S_DO_IO 8
-#define PA_PIN 46
 #else
 
 #define LCD_SDIO0 4

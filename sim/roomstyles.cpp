@@ -954,7 +954,7 @@ void styleTree(Pic& P, float hour) {
   paintRoom(P, g, [&](const Hit& h, float x, float y) -> F3 {
     switch (h.s) {
       case S_BACK: case S_LEFT: case S_RIGHT: {   // horizontal planks
-        float vv = (h.s == S_BACK ? y : h.v + 200);
+        float vv = (h.s == S_BACK ? y : h.v + g.vy);   // (side walls on the back wall's height scale: each plank row meets its twin in the corners)
         float pu = h.s == S_BACK ? x : h.u;
         int row = (int)floorf(vv / 14);
         F3 base = lerp(hx(0xC48A4E), hx(0xD8A060), rnd2(row, 4, 51));

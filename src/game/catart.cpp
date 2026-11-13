@@ -197,9 +197,10 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
     cv.set(neckX, neckY + drop / 3, dot); cv.set(neckX - half / 3, neckY + drop / 6 + 1, dot); cv.set(neckX + half / 3, neckY + drop / 6 + 1, dot);
     if (drop > 8) cv.set(neckX, neckY + drop * 2 / 3, dot);
   } else if (d.neck == NK_PEARLS) {   // a string of pearls, dipping in the middle
-    const int half = side ? u(0.26f) : u(0.42f), r = u(0.045f) + 1, n = side ? 2 : 3;
+    const int half = side ? u(0.2f) : u(0.42f), r = u(0.045f) + 1, n = side ? 2 : 3;
+    const int lift = side ? u(0.16f) : 0, dip = side ? u(0.06f) + 1 : u(0.12f) + 1;   // side on: higher up the neck, and a shallower dip
     for (int i = -n; i <= n; i++) {
-      const int px = neckX + i * half / n, py = neckY + (n * n - i * i) * (u(0.12f) + 1) / (n * n);
+      const int px = neckX + i * half / n, py = neckY - lift + (n * n - i * i) * dip / (n * n);
       cv.disc(px, py, r, rgb(150, 150, 176)); cv.disc(px, py, r - 1 > 0 ? r - 1 : 0, rgb(250, 248, 255)); cv.set(px, py, rgb(255, 255, 255));
     }
   } else if (d.neck == NK_TIE) {   // a smart striped necktie on a white collar
@@ -238,6 +239,13 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
         cv.set(cx - er / 2, eyeY - er / 2, rgb(255, 255, 255));
         const int dir = side ? (L ? 1 : -1) : 1;
         cv.line(cx + dir * er, eyeY + er / 2, cx + dir * (er + 1), eyeY + er * 2 + 2, gold);
+      } else if (d.glasses == GL_GOGGLES) {   // brass explorer's goggles: thick round rims, amber glass, a leather strap
+        const Color brass = rgb(214, 160, 70), brassD = rgb(140, 96, 36), glass = rgb(250, 190, 90);
+        cv.disc(cx, eyeY, er + 1, ol); cv.disc(cx, eyeY, er, brass); cv.disc(cx, eyeY, er - 2 > 0 ? er - 2 : 1, glass);
+        cv.ring(cx, eyeY, er, brassD);
+        cv.set(cx - er / 2, eyeY - er / 2, rgb(255, 250, 220));
+        const int sx = which ? cx + er + 1 : cx - er - 1, dirS = which ? 1 : -1;   // the strap, out to the side of the head
+        cv.hline(dirS > 0 ? sx : sx - u(0.12f), eyeY - 1, u(0.12f) + 1, rgb(96, 58, 34)); cv.hline(dirS > 0 ? sx : sx - u(0.12f), eyeY, u(0.12f) + 1, rgb(70, 40, 24));
       } else if (d.glasses == GL_3D) {   // paper 3-D specs: one red lens, one blue
         const Color fr = rgb(248, 248, 248), tint = which ? rgb(40, 190, 230) : rgb(232, 50, 60);
         cv.rect(cx - er - 1, eyeY - er + 1, er * 2 + 3, er * 2 - 1, fr); cv.frame(cx - er - 1, eyeY - er + 1, er * 2 + 3, er * 2 - 1, ol);

@@ -34,7 +34,7 @@ constexpr int TOOL_H = 40;
 //   front row: bed 83-125, box 126-166, the Hamster's wheel far right
 constexpr int TREE_X = 60, TREE_Y = 138, BOX2_X = 146, CHAIR_X = 96, CHAIR_Y = 150;
 constexpr int LCHAIR_X = 44, LCHAIR_Y = 164;   // the Luxury Chair: nearer the player, on the left
-constexpr int GIFT_X = 18, GIFT_Y = 179;       // a waiting gift box: front left corner of the floor
+constexpr int GIFT_X = 18, GIFT_Y = 182;       // a waiting gift box: front left corner of the floor, below the litter tray (its base is row 160)
 constexpr int GIFT_STREAK = 5;                 // well-cared-for days in a row that earn one
 constexpr int TUNNEL_X = 78, TUNNEL_Y = 147;   // its top edge (y - 12) stays below the house mouse (rows ~122-129)
 enum BoxType : uint8_t { BT_NONE, BT_TISSUE, BT_SHOE, BT_CARD, BT_CRATE };

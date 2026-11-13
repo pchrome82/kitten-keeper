@@ -251,7 +251,7 @@ void Pet::petIt(float amt) {
 void Pet::exercise(float funGain, float energyCost, float chonkLoss) {
   d.fun += funGain;
   d.energy -= energyCost;
-  d.chonk -= chonkLoss * (d.breed == 5 ? 1.25f : 1.0f);   // a Sphynx burns it off faster (lean = the Tiny Sun comes easier)
+  d.chonk -= chonkLoss * EXERCISE_WEIGHT_LOSS * (d.breed == 5 ? 1.25f : 1.0f);   // a Sphynx burns it off faster (lean = the Tiny Sun comes easier)
   d.resent -= (funGain < 40 ? funGain : 40) * 0.2f;   // a good game cheers them up (capped, now that games can fill Fun)
   clampAll();
 }
