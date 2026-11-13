@@ -158,7 +158,7 @@ struct HeistGame {
 // ---- Explore: a little Zelda-style world (see explore.cpp) ----
 constexpr int EXW = 6, EXH = 5;          // world: 6x5 screens (the right-hand column is the city)
 constexpr int EXC = 11, EXR = 10;        // each screen: 11x10 tiles of 16 px
-struct ExMob { float x, y, vx, vy, t; uint8_t kind; bool alive; };
+struct ExMob { float x, y, vx, vy, t; uint8_t kind; bool alive; uint8_t phase; float aux, aux2; };   // phase / aux: the city car's trip (see explore.cpp)
 constexpr int EX_MOBS = 6;   // up to 2 critters + 2 cars + a wild cat, with room to spare
 struct ExploreGame {
   int sx, sy;                    // current screen
@@ -197,6 +197,8 @@ struct ExploreGame {
   bool active;                   // a trip is under way: leaving with BACK keeps it (until they sleep)
   float hitT;                    // stunned after a car scare
   float irisT;                   // > 0: just went through a door / cave mouth / the crack: the view irises open from the cat
+  bool autoWalk, pressInWalk;    // tap to walk: heading for (goalX, goalY) on their own / this press began while they were
+  float goalX, goalY;
 };
 struct MagicGame { int round, correct, state; float t; bool inside, tell; int guess; };
 constexpr int LT_GX = 55, LT_GY = 51;   // litter sand grid (2 px cells over the 110x102 tray)
@@ -236,6 +238,9 @@ class Game {
   bool frame(Canvas& cv, bool touchDown, int physX, int physY);
   uint8_t brightness() const { return bright_; }
   bool displayOn() const { return screenOn_; }
+  // The timing games want a quick frame rate (smoother motion, and the touch is read twice as often): up to ~60 fps
+  // while one is on screen, ~30 fps everywhere else to spare the battery.
+  bool fastFrames() const { return scr == S_SCRATCH || scr == S_LASER || scr == S_KNOCK || scr == S_HEIST; }
   void saveNow();
 
   // ---- state (public: handy for the simulator & tests) ----

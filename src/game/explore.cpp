@@ -46,7 +46,8 @@ enum Tile : uint8_t {
   T_BED,                                                                         // a bed to nap in (houses, the hermit's cave)
   T_BUSH,                                                                        // a thick bush (one of them hides a secret cave: tap it)
   T_HOLE,                                                                        // a crack in the Old Cave's floor: step in to drop into the Deep Tunnels
-  T_CRACK                                                                        // an odd, cracked bit of wall (the Hermit's cave, behind him): tap it for a secret
+  T_CRACK,                                                                       // an odd, cracked bit of wall (the Hermit's cave, behind him): tap it for a secret
+  T_DECOR                                                                        // furniture in a house (see HOUSE_DECOR): floor underneath, not walkable
 };
 
 // places (journal bits 8+id) and which screen they're on
@@ -151,8 +152,9 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
   // lattice of paths joins every screen to its neighbours (row 5 across, column 5 down)
   const bool moat = sx == 4 && sy == 0;
   if (!moat) {
-    for (int x = (sx == 0 ? 1 : 0); x <= (sx == EXW - 1 ? EXC - 2 : EXC - 1); x++) m[5][x] = T_PATH;
-    for (int y = (sy == 0 ? 1 : 0); y <= (sy == EXH - 1 ? EXR - 2 : EXR - 1); y++) m[y][5] = T_PATH;
+    // (at the edge of the world the path stops at the crossroads instead of running into the wall of trees)
+    for (int x = (sx == 0 ? 5 : 0); x <= (sx == EXW - 1 ? 5 : EXC - 1); x++) m[5][x] = T_PATH;
+    for (int y = (sy == 0 ? 5 : 0); y <= (sy == EXH - 1 ? 5 : EXR - 1); y++) m[y][5] = T_PATH;
   }
   // the river runs down the middle column of screens, with a bridge where the path crosses
   if (sx == 2) {
@@ -194,7 +196,7 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
       if (x == 5 && (y < 3 || y > 6)) t = T_WALK;
       if (x == 0) t = (hsh(x, y + sy * 10, 57) % 100 < 20) ? T_FLOWER : T_GRASS;   // the outskirts
       if (x == 1) t = T_WALK;                                                       // a sidewalk along them
-      if (x == EXC - 1) t = T_BLDG;
+      if (x == EXC - 1 && y != 4 && y != 5) t = T_BLDG;   // (the road carries on east, off the screen)
       if ((sy == 0 && y == 0) || (sy == EXH - 1 && y == EXR - 1)) t = T_BLDG;
       m[y][x] = t;
     }
@@ -203,12 +205,12 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
     return;
   }
   // houses, caves and the home
-  if (sx == HOME_SX && sy == HOME_SY) { house(m, 1, 1); carve(m, 2, 3, 2, 5); m[3][7] = T_SIGN; }
-  if (isAt(P_GRANDMA, sx, sy)) { house(m, 7, 1); carve(m, 8, 3, 8, 5); }
-  if (isAt(P_TOM, sx, sy)) { house(m, 1, 6); carve(m, 2, 8, 5, 8); }   // (the door faces down: a path from it round to the main path)
-  if (isAt(P_WHISKERS, sx, sy)) { house(m, 1, 1); carve(m, 2, 3, 2, 5); }
-  if (isAt(P_TCAVE, sx, sy)) { cave(m, 3, 2); carve(m, 3, 3, 3, 5); }
-  if (isAt(P_HERMIT, sx, sy)) { cave(m, 8, 2); carve(m, 8, 3, 8, 5); }
+  if (sx == HOME_SX && sy == HOME_SY) { house(m, 1, 1); carve(m, 2, 3, 5, 5); m[3][7] = T_SIGN; }
+  if (isAt(P_GRANDMA, sx, sy)) { house(m, 7, 1); carve(m, 8, 3, 5, 5); }
+  if (isAt(P_TOM, sx, sy)) { house(m, 1, 6); carve(m, 2, 8, 5, 8); carve(m, 5, 8, 5, 5); }   // (the door faces down: a path from it round to the main path)
+  if (isAt(P_WHISKERS, sx, sy)) { house(m, 1, 1); carve(m, 2, 3, 5, 5); }
+  if (isAt(P_TCAVE, sx, sy)) { cave(m, 3, 2); carve(m, 3, 3, 5, 5); }
+  if (isAt(P_HERMIT, sx, sy)) { cave(m, 8, 2); carve(m, 8, 3, 5, 5); }
   // the SECRET: no path leads here. A thick bush tucked between trees hides a cave; tap it to find the Hidden Hermit.
   if (isAt(P_SECRET, sx, sy)) {
     if (flags & 32) cave(m, 8, 2);
@@ -238,12 +240,124 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
   }
 }
 
+// ---- the neighbours' houses: furniture and things on the walls ----
+// Row 0 is the back wall (windows, pictures, a clock); everything else stands on the floor and blocks the way.
+// The middle column (the way in) and the tiles round the neighbour and the bed are kept clear.
+enum DecorKind : uint8_t { DK_WINDOW, DK_PICTURE, DK_CLOCK, DK_COUNTER, DK_SINK, DK_STOVE, DK_PLANT, DK_TABLE, DK_CHAIR,
+                           DK_SHELF, DK_LAMP, DK_SOFA, DK_FLOWERS, DK_END };
+struct Decor { uint8_t kind, x, y; };
+const Decor DECOR_GRANDMA[] = {   // a cosy kitchen
+  {DK_WINDOW, 2, 0}, {DK_PICTURE, 5, 0}, {DK_WINDOW, 8, 0},
+  {DK_COUNTER, 1, 1}, {DK_SINK, 2, 1}, {DK_STOVE, 3, 1},
+  {DK_CHAIR, 1, 6}, {DK_TABLE, 2, 6}, {DK_TABLE, 3, 6}, {DK_PLANT, 1, 8}, {DK_PLANT, 9, 8}, {DK_FLOWERS, 9, 5}, {DK_END, 0, 0}};
+const Decor DECOR_TOM[] = {       // a cluttered old den
+  {DK_WINDOW, 2, 0}, {DK_CLOCK, 5, 0}, {DK_WINDOW, 8, 0},
+  {DK_SHELF, 1, 1}, {DK_SHELF, 2, 1}, {DK_LAMP, 3, 1},
+  {DK_SOFA, 1, 6}, {DK_SOFA, 2, 6}, {DK_TABLE, 8, 6}, {DK_CHAIR, 9, 6}, {DK_PLANT, 9, 8}, {DK_END, 0, 0}};
+const Decor DECOR_WHISKERS[] = {  // bright and pretty
+  {DK_WINDOW, 2, 0}, {DK_PICTURE, 5, 0}, {DK_WINDOW, 8, 0},
+  {DK_COUNTER, 1, 1}, {DK_SINK, 2, 1}, {DK_FLOWERS, 3, 1},
+  {DK_SOFA, 1, 6}, {DK_SOFA, 2, 6}, {DK_PLANT, 1, 8}, {DK_PLANT, 9, 8}, {DK_PLANT, 9, 5}, {DK_LAMP, 9, 1}, {DK_END, 0, 0}};
+const Decor* houseDecor(int place) {
+  return place == P_GRANDMA ? DECOR_GRANDMA : (place == P_TOM ? DECOR_TOM : (place == P_WHISKERS ? DECOR_WHISKERS : nullptr));
+}
+// One piece of furniture on its tile (x, y = the tile's top-left corner).
+int decorAt(const Decor* L, int x, int y) { for (; L && L->kind != DK_END; L++) if (L->x == x && L->y == y) return L->kind; return -1; }
+void drawDecor(Canvas& cv, uint8_t kind, int x, int y, const Decor* L, int tx, int ty) {
+  const Color ol = rgb(60, 36, 28), wood = rgb(150, 98, 58), woodD = rgb(110, 70, 40), woodL = rgb(186, 132, 84);
+  switch (kind) {
+    case DK_WINDOW: {   // a window onto the garden, with a sill
+      cv.rect(x + 1, y + 2, 14, 11, ol); cv.rect(x + 2, y + 3, 12, 9, rgb(150, 206, 240));
+      cv.rect(x + 2, y + 9, 12, 3, rgb(120, 190, 110));                              // the garden outside
+      cv.vline(x + 8, y + 3, 9, ol); cv.hline(x + 2, y + 7, 12, ol);                  // the frame
+      cv.set(x + 4, y + 4, rgb(255, 255, 255)); cv.set(x + 5, y + 5, rgb(230, 245, 255));
+      cv.rect(x, y + 13, 16, 2, woodL); cv.hline(x, y + 15, 16, woodD);              // sill
+      break; }
+    case DK_PICTURE: {  // a little framed landscape
+      cv.rect(x + 3, y + 3, 10, 9, rgb(200, 160, 60)); cv.rect(x + 4, y + 4, 8, 7, rgb(170, 210, 245));
+      cv.rect(x + 4, y + 8, 8, 3, rgb(110, 170, 90)); cv.disc(x + 10, y + 6, 1, rgb(255, 230, 120));
+      cv.tri(x + 4, y + 8, x + 7, y + 5, x + 9, y + 8, rgb(130, 140, 160));
+      break; }
+    case DK_CLOCK: {    // a round wall clock
+      cv.disc(x + 8, y + 7, 5, ol); cv.disc(x + 8, y + 7, 4, rgb(250, 246, 232));
+      cv.vline(x + 8, y + 4, 4, ol); cv.hline(x + 8, y + 7, 3, ol);
+      break; }
+    case DK_COUNTER: case DK_SINK: case DK_STOVE: {   // kitchen units against the back wall
+      const bool stove = kind == DK_STOVE;
+      cv.rect(x, y + 3, 16, 13, stove ? rgb(220, 220, 228) : rgb(232, 222, 200));
+      cv.rect(x, y + 3, 16, 3, stove ? rgb(70, 70, 80) : rgb(176, 168, 160));        // the worktop
+      cv.hline(x, y + 15, 16, woodD);
+      cv.frame(x + 2, y + 7, 5, 7, rgb(170, 160, 150)); cv.frame(x + 9, y + 7, 5, 7, rgb(170, 160, 150));   // cupboard doors
+      cv.set(x + 6, y + 10, rgb(120, 110, 100)); cv.set(x + 9, y + 10, rgb(120, 110, 100));
+      if (kind == DK_SINK) {
+        cv.ellipse(x + 8, y + 4, 5, 1, rgb(120, 140, 160));                            // the basin
+        cv.vline(x + 8, y + 0, 3, rgb(180, 190, 200)); cv.hline(x + 8, y + 0, 3, rgb(180, 190, 200));   // the tap
+      } else if (stove) {
+        cv.ring(x + 4, y + 4, 2, rgb(150, 60, 50)); cv.ring(x + 11, y + 4, 2, rgb(150, 60, 50));       // burners
+        cv.frame(x + 3, y + 8, 10, 5, ol);                                                              // the oven door
+      } else {
+        cv.rect(x + 3, y + 1, 4, 3, rgb(240, 240, 250)); cv.frame(x + 3, y + 1, 4, 3, rgb(150, 150, 170));   // a mug
+        cv.rect(x + 9, y + 0, 4, 4, rgb(214, 120, 60));                                                   // a jar
+      }
+      break; }
+    case DK_PLANT: {    // a big potted plant
+      cv.tri(x + 4, y + 10, x + 12, y + 10, x + 10, y + 15, rgb(190, 100, 60)); cv.tri(x + 4, y + 10, x + 10, y + 15, x + 6, y + 15, rgb(190, 100, 60));
+      cv.hline(x + 4, y + 10, 9, rgb(150, 76, 44));
+      cv.ellipse(x + 8, y + 6, 5, 4, rgb(60, 140, 70)); cv.ellipse(x + 5, y + 4, 3, 3, rgb(80, 170, 80)); cv.ellipse(x + 11, y + 4, 3, 3, rgb(70, 160, 76));
+      cv.ellipse(x + 8, y + 2, 2, 2, rgb(100, 190, 96));
+      break; }
+    case DK_FLOWERS: {  // a vase of flowers on a little stand
+      cv.rect(x + 5, y + 9, 6, 7, woodD); cv.rect(x + 4, y + 8, 8, 2, wood);
+      cv.rect(x + 6, y + 4, 4, 4, rgb(120, 170, 220));
+      cv.disc(x + 6, y + 2, 1, rgb(255, 120, 170)); cv.disc(x + 9, y + 2, 1, rgb(255, 220, 90)); cv.disc(x + 8, y + 1, 1, rgb(190, 140, 255));
+      break; }
+    case DK_TABLE: {    // a wooden table (two tiles side by side make one long table)
+      const bool joinL = decorAt(L, tx - 1, ty) == kind, joinR = decorAt(L, tx + 1, ty) == kind;
+      cv.rect(x + (joinL ? 0 : 1), y + 5, 16 - (joinL ? 0 : 1) - (joinR ? 0 : 1), 4, woodL);
+      cv.hline(x + (joinL ? 0 : 1), y + 9, 16 - (joinL ? 0 : 1) - (joinR ? 0 : 1), woodD);
+      if (!joinL) cv.rect(x + 2, y + 10, 2, 6, woodD);
+      if (!joinR) cv.rect(x + 12, y + 10, 2, 6, woodD);
+      cv.rect(x + 6, y + 3, 4, 2, rgb(240, 240, 250));                                  // a plate
+      break; }
+    case DK_CHAIR: {
+      cv.rect(x + 4, y + 2, 8, 7, wood); cv.frame(x + 4, y + 2, 8, 7, woodD);           // the back
+      cv.rect(x + 3, y + 9, 10, 3, woodL); cv.rect(x + 4, y + 12, 2, 4, woodD); cv.rect(x + 10, y + 12, 2, 4, woodD);
+      break; }
+    case DK_SHELF: {    // a bookcase full of books
+      cv.rect(x + 1, y + 1, 14, 15, woodD); cv.rect(x + 2, y + 2, 12, 13, rgb(80, 52, 34));
+      static const Color bk[5] = {rgb(200, 70, 70), rgb(70, 120, 200), rgb(230, 190, 80), rgb(90, 160, 90), rgb(160, 90, 170)};
+      for (int s = 0; s < 3; s++) { const int sy = y + 2 + s * 4; cv.hline(x + 2, sy + 4, 12, woodL);
+        for (int b = 0; b < 5; b++) cv.rect(x + 3 + b * 2 + (s & 1), sy + 1, 2, 3, bk[(b + s * 2 + tx) % 5]); }
+      break; }
+    case DK_LAMP: {     // a floor lamp with a warm shade
+      cv.rect(x + 5, y + 15, 6, 1, ol); cv.vline(x + 8, y + 5, 10, rgb(90, 80, 70));
+      cv.tri(x + 4, y + 6, x + 12, y + 6, x + 8, y + 0, rgb(250, 210, 120)); cv.hline(x + 4, y + 6, 9, rgb(220, 170, 80));
+      cv.set(x + 8, y + 7, rgb(255, 250, 200));
+      break; }
+    case DK_SOFA: {     // a sofa (two tiles side by side make one couch)
+      const bool joinL = decorAt(L, tx - 1, ty) == kind, joinR = decorAt(L, tx + 1, ty) == kind;
+      const Color c = rgb(90, 130, 190), cD = rgb(60, 92, 150), cL = rgb(130, 170, 220);
+      cv.rect(x + (joinL ? 0 : 1), y + 3, 16 - (joinL ? 0 : 1) - (joinR ? 0 : 1), 6, cD);     // the back
+      cv.rect(x + (joinL ? 0 : 1), y + 8, 16 - (joinL ? 0 : 1) - (joinR ? 0 : 1), 6, c);      // the seat
+      cv.hline(x + (joinL ? 0 : 2), y + 8, 14 - (joinL ? 0 : 1) - (joinR ? 0 : 1), cL);
+      if (!joinL) cv.rect(x, y + 6, 3, 8, cD);
+      if (!joinR) cv.rect(x + 13, y + 6, 3, 8, cD);
+      cv.hline(x, y + 14, 16, rgb(40, 30, 30));
+      if (!joinR) cv.rect(x + 9, y + 5, 3, 3, rgb(250, 200, 120));                      // a cushion
+      break; }
+  }
+}
+
 void buildRoom(uint8_t m[EXR][EXC], int place) {
   const bool inHouse = place == P_HOME || place == P_GRANDMA || place == P_TOM || place == P_WHISKERS;
   for (int y = 0; y < EXR; y++) for (int x = 0; x < EXC; x++)
     m[y][x] = (x == 0 || y == 0 || x == EXC - 1 || y == EXR - 1) ? T_WALL : T_FLOOR;
   m[EXR - 1][5] = T_EXIT;
-  if (inHouse) { m[3][5] = T_NPC; if (place != P_HOME) m[2][8] = T_BED; return; }
+  if (inHouse) {
+    m[3][5] = T_NPC; if (place != P_HOME) m[2][8] = T_BED;
+    for (const Decor* d = houseDecor(place); d && d->kind != DK_END; d++) if (d->y > 0) m[d->y][d->x] = T_DECOR;   // (row 0 is the wall: windows and pictures hang on it)
+    return;
+  }
   if (place == P_DEEP) {   // a fixed maze: rooms on the odd tiles (5 x 4), carved by a seeded "growing tree" walk (salt picked for dead ends)
     for (int y = 0; y < EXR - 1; y++) for (int x = 0; x < EXC; x++) m[y][x] = T_WALL;
     constexpr int CW = 5, CH = 4, SALT = 97;
@@ -449,7 +563,7 @@ void drawTile(Canvas& cv, uint8_t t, int x, int y, int tx, int ty, int salt, flo
         for (int k = 0; k < 3; k++) cv.set(x + 4 + k * 4, y + 10, rgb(250, 230, 150));
       }
       break;
-    case T_FLOOR: case T_NPC:
+    case T_FLOOR: case T_NPC: case T_DECOR:   // (furniture is drawn on top: drawDecor)
       if (cave) { cv.rect(x, y, TS, TS, rgb(54, 46, 58)); cv.set(x + (int)(h % 15), y + (int)((h >> 4) % 15), rgb(70, 62, 74)); }
       else { cv.rect(x, y, TS, TS, rgb(176, 124, 80)); for (int k = 0; k < TS; k += 5) cv.hline(x, y + k, TS, rgb(150, 104, 66)); }
       break;
@@ -708,6 +822,7 @@ void Game::screenExplore(Canvas& cv) {
   if (g.mp && net_.mode != NM_MATCH) { g.mp = false; g.active = false; setScreen(S_HOME); return; }   // the match is over / gone
   setLayout(g.mp ? 1 : sv.worldSeed);   // (whose world: this player's own, or the classic map in a match)
   g.t += dt;
+  if (g.state != 0) g.autoWalk = false;   // a dialog, a fight, the next screen, the map: a tap-to-walk stops there
   if (g.msgT > 0) g.msgT -= dt;
   const bool inCave = g.room == P_TCAVE || g.room == P_HERMIT || g.room == P_KING || g.room == P_SECRET || g.room == P_DEEP;
   const float hh = hour + minute / 60.0f;
@@ -789,16 +904,11 @@ void Game::screenExplore(Canvas& cv) {
         break;
       }
     }
-    if (g.sx == CITY_SX) {   // traffic: one car per lane
-      for (int lane = 0; lane < 2 && g.nmob < EX_MOBS - 1; lane++) {
-        ExMob& m = g.mob[g.nmob++];
-        memset(&m, 0, sizeof(m));
-        m.kind = MOB_CAR; m.alive = true;
-        m.y = OY + (4 + lane) * TS + 8.0f;
-        m.vx = (lane == 0 ? -1.0f : 1.0f) * (48.0f + pet.rndf() * 30.0f);
-        m.x = OX + 2 * TS + 10 + pet.rndf() * (7 * TS - 20);   // somewhere on the road
-        m.t = (float)(pet.rnd() % 4);
-      }
+    if (g.sx == CITY_SX && g.nmob < EX_MOBS) {   // traffic: one car at a time, coming in from off-screen (see carTrip)
+      ExMob& m = g.mob[g.nmob++];
+      memset(&m, 0, sizeof(m));
+      m.kind = MOB_CAR; m.alive = true;
+      m.phase = 3; m.aux = 0.5f + pet.rndf() * 1.5f;   // on its way: here in a moment
     }
     // a wild cat on some screens (not near home or on screens with houses)
     const int bit = g.sy * EXW + g.sx;
@@ -824,7 +934,7 @@ void Game::screenExplore(Canvas& cv) {
   };
   auto enterRoom = [&](int place, int tx, int ty) {
     g.enterX = tx; g.enterY = ty;
-    g.room = place; g.nmob = 0; g.irisT = 0.4f;
+    g.room = place; g.nmob = 0; g.irisT = 0.4f; g.autoWalk = false;
     buildRoom(g.map, place);
     g.x = OX + 5 * TS + 8.0f; g.y = OY + 8 * TS + 8.0f;
     if (!(sv.ex.journal & (1u << (8 + place)))) { sv.ex.journal |= 1u << (8 + place); g.places++; }
@@ -845,7 +955,7 @@ void Game::screenExplore(Canvas& cv) {
     }
   };
   auto leaveRoom = [&]() {
-    g.room = -1; g.irisT = 0.4f;
+    g.room = -1; g.irisT = 0.4f; g.autoWalk = false;
     sound(SND_BACK);
     buildScreen(g.map, g.sx, g.sy, sv.ex.flags);
     g.x = OX + g.enterX * TS + 8.0f; g.y = OY + (g.enterY + 1) * TS + 8.0f;
@@ -863,11 +973,11 @@ void Game::screenExplore(Canvas& cv) {
       for (int i = 0; i < g.nfish && !tapped; i++) {
         auto& f = g.fish[i];
         if (!f.alive || tileAt(f.x, f.y) == T_BRIDGE) continue;   // under a bridge: out of reach
-        if (fabsf(in.x - f.x) > 11 || fabsf(in.y - f.y) > 11) continue;
+        if (fabsf(in.x - f.x) > 15 || fabsf(in.y - f.y) > 15) continue;   // (a roomy target: they keep swimming)
         tapped = true;
         const int fx = (int)((f.x - OX) / TS), fy = (int)((f.y - OY) / TS);
         const int here = tileAt(g.x, g.y);
-        const bool bank = here != T_BRIDGE && here != T_WATER && here != T_LILY && abs(fx - ctx) <= 1 && abs(fy - cty) <= 1;
+        const bool bank = here != T_BRIDGE && here != T_WATER && here != T_LILY && abs(fx - ctx) <= 1 && abs(fy - cty) <= 2;   // (beside them, or a tile up or down the river: they swim past fast)
         if (!bank) { (sound(SND_TAP), say("Get on the bank next to it!")); continue; }
         if (g.fishToday >= 5) { (sound(SND_TAP), say("Full of fish! Let them be.")); continue; }
         f.alive = false; g.fishToday++; sound(SND_SPLASH);
@@ -881,11 +991,26 @@ void Game::screenExplore(Canvas& cv) {
     }
     if (in.tap && !tapped && in.y >= OY && in.y < OY + PH) {
       // tapping something right next to them = interact
+      // Which tile? The one under the finger, unless it lands just beside something you can tap (a nest in a tree's
+      // leaves, a sign, a chest...) that's next to them: then that thing, the nearest one within ~15 px of the finger.
       int tx = (in.x - OX) / TS, ty = (in.y - OY) / TS;
+      {
+        auto tappable = [](uint8_t t) { return t == T_SIGN || t == T_BUSH || t == T_CRACK || t == T_LOOSE || t == T_TRASH || t == T_NEST || t == T_CHEST || t == T_NPC; };
+        int bx = -1, by = -1; float bd = 1e9f;
+        for (int oy = -1; oy <= 1; oy++) for (int ox = -1; ox <= 1; ox++) {
+          const int x = tx + ox, y = ty + oy;
+          if (x < 0 || y < 0 || x >= EXC || y >= EXR || abs(x - ctx) > 1 || abs(y - cty) > 1 || !tappable(g.map[y][x])) continue;
+          const float ddx = in.x - (OX + x * TS + 8.0f), ddy = in.y - (OY + y * TS + 8.0f), d = sqrtf(ddx * ddx + ddy * ddy);
+          if ((ox || oy) && d > 15.0f) continue;   // a neighbouring tile only counts if the finger is close to it
+          if (d < bd) { bd = d; bx = x; by = y; }
+        }
+        if (bx >= 0) { tx = bx; ty = by; }
+      }
       if (tx >= 0 && ty >= 0 && tx < EXC && ty < EXR && abs(tx - ctx) <= 1 && abs(ty - cty) <= 1) {
         uint8_t t = g.map[ty][tx];
         const int bit = g.sy * EXW + g.sx;
-        tapped = true;
+        // something to tap: interact. Plain ground: not used up here, so it becomes a tap to walk (below)
+        tapped = t == T_SIGN || t == T_BUSH || t == T_CRACK || t == T_LOOSE || t == T_TRASH || t == T_NEST || t == T_CHEST || t == T_NPC;
         if (t == T_SIGN) {
           if (g.room < 0 && g.sx == HOME_SX && g.sy == HOME_SY) { char e[28]; snprintf(e, sizeof(e), "Each screen: -%d energy", (int)exScreenCost()); dialog("SIGN", "Drag to walk anywhere.", "Tap things next to you.", e, "OK", nullptr, 0, 0); }
           else if (g.sx == 4 && g.sy == 0) dialog("SIGN", "ALLEY KING'S LAIR", "The gate is locked.", "The key? Try the old cave.", "OK", nullptr, 0, 0);
@@ -990,13 +1115,28 @@ void Game::screenExplore(Canvas& cv) {
     // movement
     g.moving = false;
     if (g.hitT > 0) g.hitT -= dt;
-    if (in.down && !tapped && in.y >= OY - 6 && g.hitT <= 0 && g.napT <= 0) {
-      float fx = clampf((float)in.x, (float)OX, (float)(OX + PW)), fy = clampf((float)in.y, (float)OY, (float)(OY + PH));
+    // (a finger up in the top bar counts too, so heading north is as easy as heading south; not on the BACK button)
+    const bool onBack = in.x < CORNER + 40 && in.y < 20;
+    // Tap to walk: a quick tap picks a spot and they walk there on their own (round obstacles, and off the screen
+    // if it's by an edge that leads somewhere). A quick tap while they're walking stops them. Holding the finger
+    // down still steers them directly, as before (and takes over from a walk in progress).
+    constexpr int TAP_MS = 300;
+    if (in.pressed) g.pressInWalk = g.autoWalk;
+    if (in.tap && !tapped && in.heldMs < TAP_MS && !onBack && in.y < OY + PH) {
+      if (g.pressInWalk) g.autoWalk = false;
+      else { g.autoWalk = true; g.goalX = (float)in.x; g.goalY = (float)in.y; }
+      g.pressInWalk = false;
+    }
+    if (g.autoWalk && in.down && in.heldMs >= TAP_MS && !onBack) g.autoWalk = false;   // held: the finger takes over
+    const bool byFinger = in.down && !onBack && !(g.pressInWalk && in.heldMs < TAP_MS);
+    const float pxF = byFinger ? (float)in.x : g.goalX, pyF = byFinger ? (float)in.y : g.goalY;
+    if ((byFinger || g.autoWalk) && !tapped && g.hitT <= 0 && g.napT <= 0) {
+      float fx = clampf(pxF, (float)OX, (float)(OX + PW)), fy = clampf(pyF, (float)OY, (float)(OY + PH));
       int gx = (int)clampf((fx - OX) / TS, 0, EXC - 1), gy = (int)clampf((fy - OY) / TS, 0, EXR - 1);
       // finger near an edge that leads somewhere: head for the nearest way out on that side and walk off it
       if (g.room < 0) {
-        const float B = 14.0f;
-        const float dl = (OX + B) - in.x, dr = in.x - (OX + PW - B), du = (OY + B) - in.y, dd = in.y - (OY + PH - B);
+        const float B = 14.0f, BU = 22.0f;   // the top gets a deeper zone: the top bar sits over it and the glass edge reads short
+        const float dl = (OX + B) - pxF, dr = pxF - (OX + PW - B), du = (OY + BU) - pyF, dd = pyF - (OY + PH - B);
         int side = 0; float deep = 0;
         if (dl > deep && g.sx > 0) { deep = dl; side = 1; }
         if (dr > deep && g.sx < EXW - 1) { deep = dr; side = 2; }
@@ -1057,7 +1197,7 @@ void Game::screenExplore(Canvas& cv) {
         g.x += dx / dist * st; g.y += dy / dist * st;
         if (fabsf(dx) > 0.5f) g.left = dx < 0;
         g.moving = true;
-      }
+      } else if (!byFinger) g.autoWalk = false;   // tap to walk: there (or as close as they can get)
     }
     // boulder: a chonk walking into it shoves it away
     if (g.room < 0 && isAt(P_NOOK, g.sx, g.sy) && !(sv.ex.flags & 8) && in.down) {
@@ -1184,11 +1324,30 @@ void Game::screenExplore(Canvas& cv) {
       if (!m.alive) continue;
       float dx = m.x - g.x, dy = m.y - g.y, d = sqrtf(dx * dx + dy * dy) + 0.01f;
       if (m.kind == MOB_CAR) {
-        const float RL = OX + 2 * TS, RR = OX + (EXC - 1) * TS;   // the road
-        m.x += m.vx * dt;
-        if (m.x < RL - 14) { m.x = RR + 14; m.vx = -(48.0f + pet.rndf() * 30.0f); }
-        if (m.x > RR + 14) { m.x = RL - 14; m.vx = 48.0f + pet.rndf() * 30.0f; }
-        const bool onRoad = m.x - 10 >= RL && m.x + 10 <= RR;
+        // One car's trip: it comes in from off-screen to the east in the top lane (driving on the right), makes a
+        // U-turn somewhere west of the crosswalk, and drives back out east in the bottom lane. Then, after a pause,
+        // the next one. phase 0 in, 1 turning (aux = where, aux2 = how far round), 2 out, 3 gone (aux = the pause).
+        const float TOP = OY + 4 * TS + 8.0f, MID = OY + 5 * TS, R = 8.0f, OFF = OX + PW + 16.0f;
+        switch (m.phase) {
+          case 0: m.x += m.vx * dt; if (m.x <= m.aux) { m.x = m.aux; m.phase = 1; m.aux2 = 0; } break;
+          case 1: {
+            m.aux2 += dt * fabsf(m.vx) * 0.6f / (3.14159f * R);   // (slower round the bend)
+            if (m.aux2 >= 1) { m.aux2 = 1; m.phase = 2; m.vx = fabsf(m.vx); }
+            const float a = 3.14159f * m.aux2;
+            m.x = m.aux - R * sinf(a); m.y = MID - R * cosf(a);
+            break; }
+          case 2: m.x += m.vx * dt; if (m.x > OFF) { m.phase = 3; m.aux = 2.0f + pet.rndf() * 3.0f; } break;
+          default:
+            m.aux -= dt;
+            if (m.aux <= 0) {
+              m.phase = 0; m.x = OFF; m.y = TOP;
+              m.vx = -(44.0f + pet.rndf() * 24.0f);
+              m.aux = OX + (2 + (int)(pet.rnd() % 3)) * TS + 8.0f;   // where it turns: west of the crosswalk
+              m.t = (float)(pet.rnd() % 4);                             // its colour
+            }
+            break;
+        }
+        const bool onRoad = m.phase != 3 && m.x < OX + PW;
         if (onRoad && g.hitT <= 0 && fabsf(dx) < 12 && fabsf(dy) < 8) {   // SCREECH!
           g.hitT = 1.2f; sound(SND_HISS);
           pet.d.energy = clampf(pet.d.energy - 8, 0, 100);
@@ -1277,9 +1436,13 @@ void Game::screenExplore(Canvas& cv) {
   // room furnishings / NPCs
   if (g.room >= 0 && g.state != 1) {
     const int nx = OX + 5 * TS + 8, ny = OY + 3 * TS + 14;
+    if (const Decor* L = houseDecor(g.room)) {   // the neighbours' furniture, windows and pictures
+      cv.hline(OX + TS, OY + TS, PW - 2 * TS, rgb(150, 100, 80));                              // a skirting board along the back wall
+      for (const Decor* d = L; d->kind != DK_END; d++) drawDecor(cv, d->kind, OX + d->x * TS, OY + d->y * TS, L, d->x, d->y);
+    }
     if (g.room == P_GRANDMA) { cv.ellipse(OX + 5 * TS + 8, OY + 5 * TS + 8, 30, 10, rgb(170, 70, 90)); drawMiniCat(cv, nx, ny, false, g.t, 0, 0.6f, false); cv.hline(nx + 1, ny - 12, 6, rgb(230, 230, 240)); }
-    if (g.room == P_TOM) { drawMiniCat(cv, nx, ny, true, g.t, 3, 0.4f, false); cv.rect(OX + 2 * TS, OY + 2 * TS, 20, 10, rgb(120, 80, 50)); }
-    if (g.room == P_WHISKERS) { drawMiniCat(cv, nx, ny, false, g.t, 1, 0.0f, false); cv.disc(OX + 8 * TS, OY + 6 * TS, 6, rgb(255, 190, 210)); }
+    if (g.room == P_TOM) { cv.ellipse(OX + 5 * TS + 8, OY + 5 * TS + 8, 28, 9, rgb(110, 84, 60)); drawMiniCat(cv, nx, ny, true, g.t, 3, 0.4f, false); }
+    if (g.room == P_WHISKERS) { cv.ellipse(OX + 5 * TS + 8, OY + 5 * TS + 8, 30, 10, rgb(200, 150, 190)); drawMiniCat(cv, nx, ny, false, g.t, 1, 0.0f, false); }
     if (g.room == P_HERMIT) drawHermit(cv, nx, ny + 2, g.t);
     if (g.room == P_SECRET) drawHermit(cv, nx, ny + 2, g.t, true);
     if (g.room == P_KING && !(sv.ex.flags & 4)) {
@@ -1297,8 +1460,17 @@ void Game::screenExplore(Canvas& cv) {
       if (g.room >= 0 && m.kind != MOB_WILDCAT) continue;
       if (m.kind == MOB_CAR) {
         static const Color cc[4] = {rgb(220, 50, 50), rgb(60, 120, 220), rgb(250, 200, 50), rgb(240, 240, 240)};
-        int x = (int)m.x, y = (int)m.y; bool l = m.vx < 0;
-        if (x - 10 < OX + 2 * TS || x + 10 > OX + (EXC - 1) * TS) continue;   // round the corner at either end of the road
+        if (m.phase == 3) continue;   // between trips
+        int x = (int)m.x, y = (int)m.y; bool l = m.phase == 0 || (m.phase == 1 && m.aux2 < 0.3f);
+        if (m.phase == 1 && m.aux2 >= 0.3f && m.aux2 <= 0.7f) {   // halfway round the U-turn: nose towards us
+          const Color body = cc[(int)m.t & 3];
+          cv.rect(x - 7, y - 5, 14, 9, rgb(20, 20, 24)); cv.rect(x - 6, y - 4, 12, 7, body);
+          cv.rect(x - 4, y - 8, 8, 4, body); cv.rect(x - 3, y - 7, 6, 2, rgb(160, 210, 240));   // windscreen
+          cv.rect(x - 6, y + 3, 3, 2, rgb(20, 20, 24)); cv.rect(x + 3, y + 3, 3, 2, rgb(20, 20, 24));
+          cv.set(x - 5, y, rgb(255, 250, 200)); cv.set(x + 4, y, rgb(255, 250, 200));   // both headlights
+          addLight(x, y + 8, 16, 170);
+          continue;
+        }
         cv.rect(x - 11, y - 5, 22, 9, rgb(20, 20, 24));
         cv.rect(x - 10, y - 4, 20, 7, cc[(int)m.t & 3]);
         cv.rect(x - 4, y - 8, 9, 4, cc[(int)m.t & 3]); cv.rect(x - 3, y - 7, 7, 2, rgb(160, 210, 240));
@@ -1342,6 +1514,12 @@ void Game::screenExplore(Canvas& cv) {
     }
   }
   if (g.mp && g.state != 1) netDrawPeers(cv, g.sx, g.sy, g.t);   // the other players on this square
+  // where a tap-to-walk is heading: a small pulsing ring
+  if (g.autoWalk && g.state == 0) {
+    const int gx = (int)clampf(g.goalX, OX + 4.0f, OX + PW - 4.0f), gy = (int)clampf(g.goalY, OY + 4.0f, OY + PH - 4.0f);
+    const int rr = 3 + (((int)(g.t * 4)) & 1);
+    cv.ring(gx, gy, rr, rgb(255, 240, 170)); cv.set(gx, gy, rgb(255, 240, 170));
+  }
   // the explorer
   {
     int cx = (int)g.x, cy = (int)g.y + 4;

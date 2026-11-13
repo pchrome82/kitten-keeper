@@ -12,7 +12,7 @@ static cat::Game game(&platform);
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("\n[boot] Kitten Keeper v1.2.5");
+  Serial.println("\n[boot] Kitten Keeper v1.2.6");
   cat::gShowTouch = false;   // true = debug rings where touches land + raw tilt numbers on the pour screen   // baked pixel-art cats (same look as the web build)
   hal::begin();
   game.begin();
@@ -31,7 +31,7 @@ void loop() {
   hal::setBrightness(game.brightness());
   const bool on = game.displayOn();
   hal::setPowerSave(!on);                                // screen off: slow CPU, slow sensor, light sleep between checks
-  const uint32_t target = on ? 33 : 100;                 // ~30 fps awake, 10 Hz while the screen is off
+  const uint32_t target = on ? (game.fastFrames() ? 16 : 33) : 100;   // ~60 fps in the action games, ~30 fps otherwise, 10 Hz while the screen is off
   const uint32_t el = millis() - t0;
   if (el < target) { if (on) delay(target - el); else hal::idleWait(target - el); }
 }

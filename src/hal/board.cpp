@@ -197,10 +197,17 @@ static bool flipped = false;     // device held the other way up: draw rotated 1
 static bool saveMode = false;    // screen off: low-power mode
 static uint32_t cpuNormalMhz = 0;
 
+// What each strip of the panel last showed (a hash of its pixels), so a strip that hasn't changed isn't sent again.
+// Sending a whole frame over the 40 MHz QSPI link takes ~17 ms or more; in most screens only a few strips change.
+static constexpr int NSTRIPS = 224 / 16;
+static uint32_t stripHash[NSTRIPS];
+static bool stripKnown = false;   // false: send every strip on the next flush (first frame, panel back on, flipped)
+
 static void panelOn() {
   if (!panelOff || !gfx) return;
   gfx->displayOn();
   panelOff = false;
+  stripKnown = false;
 }
 
 void setBrightness(uint8_t level) {
@@ -211,7 +218,7 @@ void setBrightness(uint8_t level) {
   if (level == 0 && !panelOff) { gfx->displayOff(); panelOff = true; }   // an AMOLED draws nothing when black, but its driver still burns a little
 }
 
-void setFlipped(bool f) { flipped = f; }
+void setFlipped(bool f) { if (f != flipped) stripKnown = false; flipped = f; }
 
 // IMU output rate: ~125 Hz awake, ~28 Hz with the screen off (still plenty to notice it being picked up)
 static void imuRate(bool slow) { if (haveImu) wr(imuAddr, 0x03, slow ? 0x18 : 0x16); }
@@ -231,12 +238,22 @@ void flush(const uint16_t* src, const uint16_t* room, bool keyed, int tr, int tg
   for (int ly = 0; ly < LH; ly += ROWS) {
     // composite the pixel-art layer over the hi-res room (PSRAM) straight into the DMA strip
     cat::composeRows(src, room, keyed, tr, tg, tb, chunk, ly, ly + ROWS);
+    {   // the same pixels as last time? Then the panel already shows them: skip the transfer
+      const uint32_t* w = (const uint32_t*)chunk;
+      const int nw = PW * ROWS * 2 / 2;
+      uint32_t h = 2166136261u;
+      for (int i = 0; i < nw; i++) h = (h ^ w[i]) * 16777619u;
+      const int s = ly / ROWS;
+      if (stripKnown && stripHash[s] == h) continue;
+      stripHash[s] = h;
+    }
     if (flipped) {   // 180 degrees: reverse this strip's pixels and put it in the mirrored place
       const int n = PW * ROWS * 2;
       for (int i = 0; i < n / 2; i++) { const uint16_t t = chunk[i]; chunk[i] = chunk[n - 1 - i]; chunk[n - 1 - i] = t; }
       gfx->draw16bitRGBBitmap(GAME_X, GAME_Y + (LH - ly - ROWS) * 2, chunk, PW, ROWS * 2);
     } else gfx->draw16bitRGBBitmap(GAME_X, GAME_Y + ly * 2, chunk, PW, ROWS * 2);
   }
+  stripKnown = true;
 }
 
 // ---------------------------------------------------------------------------------------
