@@ -855,7 +855,7 @@ void Game::screenExplore(Canvas& cv) {
   };
   auto startFight = [&](int species, float str, int hp, bool boss) {
     g.state = 3; g.foeSpecies = species; g.foeStr = str; g.foeHp = g.foeMax = hp; g.myHp = g.myMax = boss ? 4 : 3;
-    g.marker = 0; g.markerDir = 1; g.roundT = 0; g.lastHit = 0; g.boss = boss; g.fights++;
+    g.marker = 0; g.markerDir = 1; g.roundT = 0; g.lastHit = 0; g.boss = boss; g.fights++; g.swingT = 0;
     g.zoneW = clampf(0.10f + 0.025f * (pet.power() - 0.9f), 0.06f, 0.17f); g.zoneC = 0.5f;   // the first swing: centred
     g.fxKind = 1; g.fxT = 0; g.fxAfter = 0;   // flash, then the screen wipes into the fight
     g.throwT = 0; g.throwCd = 0; g.throwHit = false; g.hbKO = false; g.bossPhase = 0; g.bossPhaseT = 1.6f; g.feint = g.defended = g.defLock = false;
@@ -1659,7 +1659,8 @@ void Game::screenExplore(Canvas& cv) {
       cv.frame(95, 54, 72, 8, rgb(20, 12, 36));
     } else
     for (int i = 0; i < g.foeMax; i++) gdisc(cv, 160 - i * (g.foeMax > 6 ? 9 : 10), 58, 3, i < g.foeHp ? rgb(240, 80, 110) : rgb(70, 60, 90));
-    bool done = g.myHp <= 0 || g.foeHp <= 0;
+    if (g.swingT > 0) g.swingT -= dt;
+    bool done = (g.myHp <= 0 || g.foeHp <= 0) && g.swingT <= 0;   // (the last swing stays on the bar for its second first)
     if (!done) {
       // a hairball in flight: it lands (or misses) when it gets there
       if (g.throwT > 0) {
@@ -1720,30 +1721,43 @@ void Game::screenExplore(Canvas& cv) {
           else if (g.bossPhase != 2) { g.defLock = true; say("Too early!"); }   // mashing doesn't work: wait for the leap
         }
       } else {
-        if (!fxBusy) g.marker += g.markerDir * dt * (1.3f + 0.4f * g.foeStr);
+        // After a SCRATCH the bar holds still for a second: the line stays where they pressed, on the zone it was
+        // judged against, with HIT! / MISS! above it. Then the zone moves and the line starts again.
+        const bool held = g.swingT > 0;
+        if (!fxBusy && !held) g.marker += g.markerDir * dt * (1.3f + 0.4f * g.foeStr);
         if (g.marker > 1) { g.marker = 1; g.markerDir = -1; } else if (g.marker < 0) { g.marker = 0; g.markerDir = 1; }
+        const float mk = held ? g.swingMarker : g.marker, zc = held ? g.swingZoneC : g.zoneC, zw = held ? g.swingZoneW : g.zoneW;
+        const bool heldHit = held && g.swingRes > 0, blink = ((int)(g.t * 8)) & 1;
         int bx = 22, bw = 140, by = 130;
         cv.rect(bx, by, bw, 10, rgb(50, 40, 70));
-        cv.rect(bx + (int)((g.zoneC - g.zoneW) * bw), by, (int)(g.zoneW * 2 * bw), 10, rgb(70, 200, 90));
-        cv.frame(bx - 1, by - 1, bw + 2, 12, rgb(20, 12, 36));
-        cv.rect(bx + (int)(g.marker * bw) - 1, by - 3, 3, 16, rgb(255, 255, 255));
-        cv.textCenter(W / 2, 118, "SCRATCH on the green!", C_DIM);
+        cv.rect(bx + (int)((zc - zw) * bw), by, (int)(zw * 2 * bw), 10, heldHit ? (blink ? rgb(150, 255, 150) : rgb(90, 230, 110)) : rgb(70, 200, 90));
+        cv.frame(bx - 1, by - 1, bw + 2, 12, held ? (heldHit ? rgb(150, 255, 150) : rgb(255, 110, 100)) : rgb(20, 12, 36));
+        const int mx = bx + (int)(mk * bw);
+        const Color mc = !held ? rgb(255, 255, 255) : (heldHit ? rgb(255, 240, 120) : rgb(255, 90, 80));
+        cv.rect(mx - 1, by - 3, 3, 16, mc);
+        if (held) cv.tri(mx - 4, by - 8, mx + 4, by - 8, mx, by - 4, mc);   // a pointer at the spot they pressed
+        if (held) cv.textCenter(W / 2, 116, g.swingRes == 2 ? "BODY SLAM! x2" : (g.swingRes == 1 ? "HIT!" : "MISS!"), heldHit ? rgb(150, 255, 150) : rgb(255, 120, 110));
+        else cv.textCenter(W / 2, 118, "SCRATCH on the green!", C_DIM);
         if (g.lastHit) g.roundT += dt;
         if (g.roundT > 0.45f) { g.lastHit = 0; g.roundT = 0; }
-        const bool canSwing = g.roundT == 0 && g.throwT <= 0 && !fxBusy;
-        if (button(cv, 22, 148, 68, 20, "SCRATCH!", rgb(200, 110, 70), canSwing) && canSwing) {
+        const bool canSwing = g.roundT == 0 && g.throwT <= 0 && !fxBusy && !held;
+        // judged the moment the finger touches the button (not when it lifts: the line would have moved on by then)
+        button(cv, 22, 148, 68, 20, "SCRATCH!", rgb(200, 110, 70), canSwing);
+        const bool swingNow = in.pressed && in.px >= 20 && in.px < 92 && in.py >= 145 && in.py < 171;
+        if (swingNow && canSwing) {
           bool hit = fabsf(g.marker - g.zoneC) < g.zoneW;
+          const bool slam = hit && pet.d.chonk >= idealW + 20;
+          g.swingT = 1.0f; g.swingMarker = g.marker; g.swingZoneC = g.zoneC; g.swingZoneW = g.zoneW; g.swingRes = slam ? 2 : (hit ? 1 : 0);
           if (hit) {
-            const bool slam = pet.d.chonk >= idealW + 20;
-            g.foeHp -= slam ? 2 : 1; g.lastHit = 1; sound(SND_POUNCE);
+            g.foeHp -= slam ? 2 : 1; g.lastHit = 1; sound(SND_HIT_GOOD);
             if (slam) say("BODY SLAM! x2");
-          } else { g.lastHit = 2; sound(SND_MISS); }
+          } else { g.lastHit = 2; sound(SND_HIT_BAD); }
           float pf = clampf((hit ? 0.15f : 0.38f) * g.foeStr / clampf(pet.agility(), 0.6f, 1.3f), 0.05f, 0.8f);
           if (pet.rndf() < pf) { g.myHp--; g.lastHit = 2; }
           g.roundT = 0.001f;
           rollZone();   // hit or miss, the green zone moves for the next swing
         }
-        if (button(cv, 94, 148, 68, 20, sv.coins ? "HAIRBALL" : "NO HB!", rgb(200, 150, 70), canThrow && g.roundT == 0) && canThrow && g.roundT == 0) throwHairball();
+        if (button(cv, 94, 148, 68, 20, sv.coins ? "HAIRBALL" : "NO HB!", rgb(200, 150, 70), canThrow && g.roundT == 0 && !held) && canThrow && g.roundT == 0 && !held) throwHairball();
       }
       cv.textCenter(W / 2, 170, g.coop ? "Raid hairballs are free!" : "HAIRBALL costs 1", rgb(150, 136, 180));
     } else if (g.coop) {   // King Raid: down, or knocked out (back on your feet in a few seconds)

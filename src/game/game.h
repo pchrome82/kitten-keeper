@@ -183,6 +183,7 @@ struct ExploreGame {
   float throwT, throwCd; bool throwHit; bool hbKO;   // hbKO: this fight was won with a hairball   // a hairball in flight (1 hairball: one-hit KO, 5% miss; the King dodges ~33%)
   int bossPhase; float bossPhaseT; bool feint, defended, defLock;   // the King's leaps: 0 waiting, 1 crouching (warning), 2 in the air (DEFEND now!)
   float zoneC, zoneW;            // the green zone: centre and half-width (0..1); it moves after every swing
+  float swingT, swingMarker, swingZoneC, swingZoneW; int8_t swingRes;   // the last SCRATCH, held on the bar for a second: where they pressed, the zone it was judged against, 1 hit / 2 slam / 0 miss
   float fxT; int fxKind, fxAfter;   // fight transition: 1 into the fight, 2 out of it; fxAfter: 1 back to walking, 2 trip lost
   // fishing
   struct { float x, y, vy, t; bool alive; } fish[3]; int nfish;   // fish swimming in the river (hidden under bridges)

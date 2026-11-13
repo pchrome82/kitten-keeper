@@ -64,13 +64,15 @@ static const Note S_SPLASH[] = {N(0, 0, 60, NOI, 0.35f, 0), N(1000, 420, 90, SIN
 static const Note S_ALERT[] = {N(3000, 3500, 90, SIN, 0.5f, 0), REST(70), N(3000, 3500, 90, SIN, 0.5f, 0)};          // two high chirps: a meter ran dry
 static const Note S_CHIME[] = {N(1050, 1050, 70, SIN, 0.45f, 0), N(1320, 1320, 70, SIN, 0.45f, 0), N(1760, 1760, 130, SIN, 0.5f, 0)};   // magic cat: a bright rising "ta-da" for a right guess
 static const Note S_BACK[] = {N(820, 400, 70, SIN, 0.5f, 0)};                                                          // "bloop" downwards: back / close
+static const Note S_HIT_GOOD[] = {N(0, 0, 45, NOI, 0.4f, 0), N(1320, 1320, 60, SIN, 0.5f, 0), N(1980, 1980, 140, SIN, 0.55f, 0)};   // fight: a scratch that lands ("fsst-DING!")
+static const Note S_HIT_BAD[] = {N(180, 150, 120, TRI, 0.5f, 0.12f), REST(30), N(150, 110, 180, TRI, 0.5f, 0.15f)};   // fight: a scratch that misses ("bzz-bzzt")
 
 struct SoundDef { const Note* notes; uint8_t n; };
 #define SD(a) {a, (uint8_t)(sizeof(a) / sizeof(a[0]))}
 static const SoundDef kSounds[cat::SND_COUNT] = {
   SD(S_TAP), SD(S_MEOW_SOFT), SD(S_MEOW), SD(S_MEOW_LOUD), SD(S_PURR), SD(S_EAT), SD(S_COIN), SD(S_SCOOP), SD(S_HACK),
   SD(S_POUNCE), SD(S_WIN), SD(S_LOSE), SD(S_SAD), SD(S_HOLE), SD(S_ALARM), SD(S_SCRATCH), SD(S_YAWN), SD(S_POOF), SD(S_HISS),
-  SD(S_KIBBLE_BOWL), SD(S_KIBBLE_FLOOR), SD(S_BEAT), SD(S_MISS), SD(S_BLOOP), SD(S_SQUISH), SD(S_POP), SD(S_SPLASH), SD(S_BACK), SD(S_ALERT), SD(S_CHIME)};
+  SD(S_KIBBLE_BOWL), SD(S_KIBBLE_FLOOR), SD(S_BEAT), SD(S_MISS), SD(S_BLOOP), SD(S_SQUISH), SD(S_POP), SD(S_SPLASH), SD(S_BACK), SD(S_ALERT), SD(S_CHIME), SD(S_HIT_GOOD), SD(S_HIT_BAD)};
 
 struct Msg { uint8_t snd; uint8_t vol; };
 
