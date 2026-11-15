@@ -185,7 +185,9 @@ void drawLiveWindow(uint16_t* room, int roomId, float hour, float t, int weather
           else c.b += 70 * expf(-d * 10) * (1 - grey);
         }
         // clouds
-        float cu = u * 2.4f + cloudShift;
+        // (the texture's puffs are ~9 texels wide and ~5 tall: across the window at this rate they come out round and
+        //  fluffy; three times faster, as before, squeezed them into thin vertical streaks that read as rain)
+        float cu = u * 0.8f + cloudShift;
         int cx = ((int)(cu * CW)) % CW; if (cx < 0) cx += CW;
         int cy = (int)(v * 1.3f * CH); if (cy >= CH) cy = CH - 1;
         float cn = gCloud[cy * CW + cx] / 255.0f;

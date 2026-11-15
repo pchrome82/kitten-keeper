@@ -780,7 +780,7 @@ void Game::startExplore() {
   sv.ex.journal |= 1u << (8 + P_HOME);
   const uint8_t day = (uint8_t)((epoch / 86400u) & 0xFF);
   if (sv.ex.hbDay != day) { sv.ex.hbDay = day; sv.ex.hbCount = 0; sv.ex.rocksToday = 0; sv.ex.nestsToday = 0; sv.ex.trashToday = 0; }
-  snprintf(g.msg, sizeof(g.msg), "Drag to walk. Tap things!"); g.msgT = 2.5f;
+  snprintf(g.msg, sizeof(g.msg), "Tap or drag to walk!"); g.msgT = 2.5f;
   autosave(true);
   setScreen(S_EXPLORE);
 }
@@ -788,7 +788,7 @@ void Game::startExplore() {
 // test/debug helper: put the explorer on a given outdoor tile
 void Game::exTeleport(int sx, int sy, int tx, int ty) {
   ExploreGame& g = ex_;
-  g.sx = sx; g.sy = sy; g.room = -1; g.state = 0; g.nmob = 0;
+  g.sx = sx; g.sy = sy; g.room = -1; g.state = 0; g.nmob = 0; g.autoWalk = false;
   setLayout(g.mp ? 1 : sv.worldSeed);
   buildScreen(g.map, sx, sy, sv.ex.flags);
   g.x = OX + tx * TS + 8.0f; g.y = OY + ty * TS + 8.0f;
@@ -1012,7 +1012,7 @@ void Game::screenExplore(Canvas& cv) {
         // something to tap: interact. Plain ground: not used up here, so it becomes a tap to walk (below)
         tapped = t == T_SIGN || t == T_BUSH || t == T_CRACK || t == T_LOOSE || t == T_TRASH || t == T_NEST || t == T_CHEST || t == T_NPC;
         if (t == T_SIGN) {
-          if (g.room < 0 && g.sx == HOME_SX && g.sy == HOME_SY) { char e[28]; snprintf(e, sizeof(e), "Each screen: -%d energy", (int)exScreenCost()); dialog("SIGN", "Drag to walk anywhere.", "Tap things next to you.", e, "OK", nullptr, 0, 0); }
+          if (g.room < 0 && g.sx == HOME_SX && g.sy == HOME_SY) { char e[28]; snprintf(e, sizeof(e), "Each screen: -%d energy", (int)exScreenCost()); dialog("SIGN", "Tap or drag to walk.", "Tap things next to you.", e, "OK", nullptr, 0, 0); }
           else if (g.sx == 4 && g.sy == 0) dialog("SIGN", "ALLEY KING'S LAIR", "The gate is locked.", "The key? Try the old cave.", "OK", nullptr, 0, 0);
           else if (g.sx == 2 && g.sy == 2) dialog("SIGN", "GOOD FISHING", "Stand on the bank, then", "tap a fish next to you.", "OK", nullptr, 0, 0);
           else if (isAt(P_PEN, g.sx, g.sy)) dialog("SIGN", "Private garden.", "Only a SLIM cat could", "squeeze through that gap.", "OK", nullptr, 0, 0);
@@ -1919,7 +1919,7 @@ void Game::screenExplore(Canvas& cv) {
   cv.hline(0, OY + PH, W, rgb(96, 70, 130));
   if (g.msgT > 0) cv.textCenter(W / 2, OY + PH + 3, g.msg, rgb(255, 240, 160));
   else {
-    const char* where = g.room >= 0 ? PLACE_NAME[g.room] : (night > 0.5f ? "Dark! Catch fireflies" : (weather == 2 ? "Rainy: frogs by the river" : "Drag to walk"));
+    const char* where = g.room >= 0 ? PLACE_NAME[g.room] : (night > 0.5f ? "Dark! Catch fireflies" : (weather == 2 ? "Rainy: frogs by the river" : "Tap or drag to walk"));
     cv.textCenter(W / 2, OY + PH + 3, where, C_DIM);
   }
   if (g.state == 0 && button(cv, CORNER, 199, 54, 18, "MAP", C_PURP)) { g.state = 5; g.mapTab = 0; }

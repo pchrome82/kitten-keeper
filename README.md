@@ -2,7 +2,7 @@
 
 A Tamagotchi-style virtual pet cat (a "vpet") for the **Waveshare ESP32-S3-Touch-AMOLED-1.8** and **ESP32-S3-Touch-AMOLED-2.16**. Feed it, play with it, keep its litter box clean, dress it up, and watch it grow up over a month of real time.
 
-![screens](docs/screens.png)
+![Kitten Keeper at home](docs/screens-home.png)
 
 > **Status:** an experimental hobby project, tested on Waveshare boards only. It is provided as is, with no warranty (see [Licence](#licence)). If something is off on your unit, the Serial Monitor log (115200 baud) shows `[hal]` and `[audio]` lines that say what the hardware did.
 
@@ -34,13 +34,23 @@ A plain `pio run` builds both boards. The first build downloads the ESP32 toolch
 - **Feed:** pour kibble by tilting the device. Overfeeding makes the cat **chonky** (slower, but stronger); starving it makes it skinny. Far enough either way leads to a secret ending.
 - **Play:** Laser Chase, Scratching Post, Knock It Off, a maze run, and more. Better scores earn more Fun and **hairballs**.
 - **Litter box (POO):** scoop the poops with the finger, carry them to the can and tilt to drop them in.
-- **Explore:** once grown up, take your cat on a trip across a map of gardens, caves, a city and a few secrets. Up to four devices can **Explore Together** over a direct radio link (ESP-NOW, no router).
+- **Explore:** once grown up, take your cat on a trip across a map of gardens, the river, caves, downtown and a few secrets. **Tap a spot** and your cat walks there by itself (a quick tap while it's walking stops it), or **hold and drag** to steer; walk off an edge to reach the next screen. Tap things next to your cat to search nests and loose rocks, read signs, open chests and talk to the neighbours, whose houses you can visit. Fish in the river, mind the traffic downtown, and fight wild cats: press **SCRATCH** when the line is on the green (the bar holds for a second to show where you hit) or throw a hairball. Up to four devices can **Explore Together** over a direct radio link (ESP-NOW, no router).
+
 - **Hairballs and prey** the cat brings home are **currency**. Spend them in the shop on supplies, furniture, toys, boxes and **homes**, or on skins and costumes.
 - **Wardrobe:** hats, glasses, neckwear and body costumes. Some are bought, some are Explore rewards, and eight are **gift-only**.
 - **Gift boxes:** a wrapped box turns up on the cat's birthday, at Halloween, the holidays and New Year, and after five well-cared-for days in a row. Tap it to open it.
 - **Shake or lift the device while the cat sleeps** and it wakes up grumpy.
 - **Bad ownership** (hunger, mess, neglect, grumpiness) makes the cat **run away**. A well-kept cat lives about a month and retires into the journal.
 - **Journal and album:** Menu → JOURNAL keeps milestones and a photo of every cat you have raised at each life stage. The Stats page shows needs, weight, personality and the cat's hair, speed and strength.
+
+## Screenshots
+All taken from the real game code running in the PC simulator (`sim/`), at the device's full 368x448 resolution.
+
+![Mini-games](docs/screens-games.png)
+
+![Adopting, the shop, the Wardrobe and Stats](docs/screens-menus.png)
+
+![Explore](docs/screens-explore.png)
 
 ## Tuning
 `src/game/pet.h` and `pet.cpp` hold the rates: the day and night drain (`DAY_EMPTY_HOURS`, `DAY_EMPTY_HOURS_KITTEN`, `DAY_START`, `DAY_END`, `NIGHT_AWAKE_SECS`), how much weight play burns (`EXERCISE_WEIGHT_LOSS`), ageing and `CHONK_BLACK_HOLE`. `src/game/breeds.cpp` has the breed stats and prices. After changing anything, run the simulator's `balance` test (below).
