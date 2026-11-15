@@ -196,6 +196,15 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
     cv.rect(neckX - half, neckY - th / 2, half * 2, th, c); cv.hline(neckX - half, neckY - th / 2, half * 2, cd);
     cv.set(neckX, neckY + drop / 3, dot); cv.set(neckX - half / 3, neckY + drop / 6 + 1, dot); cv.set(neckX + half / 3, neckY + drop / 6 + 1, dot);
     if (drop > 8) cv.set(neckX, neckY + drop * 2 / 3, dot);
+  } else if (d.neck == NK_LACE) {   // Grandma's frilly lace collar: a ruff of little scallops with a cameo in the middle
+    const int half = side ? u(0.26f) : u(0.44f), r = u(0.07f) + 1, n = side ? 3 : 5;
+    const Color lace = rgb(252, 248, 240), laceD = rgb(200, 190, 200);
+    for (int i = 0; i <= n; i++) {
+      const int px = neckX - half + i * 2 * half / n, py = neckY + (i & 1);
+      cv.disc(px, py, r + 1, laceD); cv.disc(px, py, r, lace);
+    }
+    cv.hline(neckX - half, neckY - r, half * 2 + 1, laceD);
+    if (!side) { const int cr = u(0.06f) + 1; cv.disc(neckX, neckY + r, cr + 1, rgb(170, 120, 40)); cv.disc(neckX, neckY + r, cr, rgb(240, 170, 160)); }
   } else if (d.neck == NK_PEARLS) {   // a string of pearls, dipping in the middle
     const int half = side ? u(0.2f) : u(0.42f), r = u(0.045f) + 1, n = side ? 2 : 3;
     const int lift = side ? u(0.16f) : 0, dip = side ? u(0.06f) + 1 : u(0.12f) + 1;   // side on: higher up the neck, and a shallower dip

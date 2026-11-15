@@ -57,6 +57,9 @@ const char* PLACE_NAME[P_COUNT] = {"Home", "Grandma's", "Old Tom's", "Whiskers'"
 enum Critter { CR_MOUSE, CR_BIRD, CR_FROG, CR_FIREFLY, CR_BUTTERFLY, CR_FISH, CR_PIGEON, CR_COUNT };
 const char* CRITTER_NAME[CR_COUNT] = {"Mouse", "Bird", "Frog", "Firefly", "Butterfly", "Fish", "Pigeon"};
 enum { MOB_WILDCAT = 10, MOB_CAR = 11 };
+// The Alley King's leap: how long he's in the air, which is how long DEFEND is red. In the multiplayer King Raid
+// everyone gets half a second longer.
+constexpr float KING_LEAP = 0.55f, KING_LEAP_RAID = 1.05f;
 constexpr int CITY_SX = EXW - 1;
 enum Chest { CH_KEY, CH_CAVEGOLD, CH_PEN, CH_NOOK, CH_CRYSTAL };
 
@@ -1068,8 +1071,9 @@ void Game::screenExplore(Canvas& cv) {
             if (q == 0) { q = 1; sv.ex.fish = 0; dialog("GRANDMA TABBY", "Oh, a visitor! Dearie,", "could you bring me", "3 fish from the river?", "SURE!", nullptr, 0, 0); }
             else if (q == 1 && sv.ex.fish >= 3) {
               q = 2;
-              if (!hasItem(ITEM_LCHAIR)) { sv.items |= (uint16_t)(1u << ITEM_LCHAIR); updateToys(); dialog("GRANDMA TABBY", "Delicious! Take my old", "LUXURY CHAIR. It's", "too comfy for me now.", "THANK YOU", nullptr, 0, 0); }
-              else { giveCoins(5); dialog("GRANDMA TABBY", "Delicious! Here,", "5 hairballs for you.", nullptr, "THANK YOU", nullptr, 0, 0); }
+              // the neighbours' thanks: a wearable you can't buy (it's theirs to give) and 3 hairballs
+              sv.ownNeck |= (uint8_t)(1u << NK_LACE); giveCoins(3); g.found += 3;
+              dialog("GRANDMA TABBY", "Delicious! Take my", "LACE COLLAR (Wardrobe)", "and 3 hairballs, dearie.", "THANK YOU", nullptr, 0, 0);
               sound(SND_WIN);
             } else if (q == 1) { snprintf(b, sizeof(b), "Fish so far: %d of 3", sv.ex.fish); dialog("GRANDMA TABBY", "Still hungry, dearie.", b, "Catch them in the river.", "OK", nullptr, 0, 0); }
             else dialog("GRANDMA TABBY", "Come visit any time!", nullptr, nullptr, "BYE", nullptr, 0, 0);
@@ -1078,8 +1082,8 @@ void Game::screenExplore(Canvas& cv) {
             if (q == 0) { q = 1; sv.ex.mice = 0; dialog("OLD TOM", "Hrmph. Mice everywhere", "and I'm too old to chase.", "Catch 3 for me, kid.", "DEAL", nullptr, 0, 0); }
             else if (q == 1 && sv.ex.mice >= 3) {
               q = 2;
-              if (!((sv.ownHat >> HAT_WIZARD) & 1)) { sv.ownHat |= (uint8_t)(1u << HAT_WIZARD); dialog("OLD TOM", "Not bad! Take my old", "WIZARD HAT (Wardrobe).", nullptr, "COOL", nullptr, 0, 0); }
-              else { giveCoins(5); dialog("OLD TOM", "Not bad! 5 hairballs.", nullptr, nullptr, "COOL", nullptr, 0, 0); }
+              sv.ownHat |= (uint8_t)(1u << HAT_WIZARD); giveCoins(3); g.found += 3;
+              dialog("OLD TOM", "Not bad! Take my old", "WIZARD HAT (Wardrobe)", "and 3 hairballs, kid.", "COOL", nullptr, 0, 0);
               sound(SND_WIN);
             } else if (q == 1) { snprintf(b, sizeof(b), "Mice so far: %d of 3", sv.ex.mice); dialog("OLD TOM", "Well? Go catch 'em.", b, nullptr, "OK", nullptr, 0, 0); }
             else dialog("OLD TOM", "Quiet around here now.", "Heh. Good kid.", nullptr, "BYE", nullptr, 0, 0);
@@ -1088,9 +1092,9 @@ void Game::screenExplore(Canvas& cv) {
             if (q == 0) { q = 1; dialog("MISS WHISKERS", "I lost my favourite", "pink yarn ball! I think", "it rolled into a garden.", "I'LL LOOK", nullptr, 0, 0); }
             else if (q == 1 && (sv.ex.flags & 16)) {
               q = 2;
-              sv.ownHat |= (uint8_t)(1u << HAT_FLOWER);
+              sv.ownHat |= (uint8_t)(1u << HAT_FLOWER); giveCoins(3); g.found += 3;
               if (!hasItem(ITEM_YARN)) { sv.items |= (uint16_t)(1u << ITEM_YARN); updateToys(); }
-              dialog("MISS WHISKERS", "My yarn! Keep it, and", "take this FLOWER CROWN", "too (Wardrobe)!", "YAY", nullptr, 0, 0);
+              dialog("MISS WHISKERS", "My yarn! You keep it,", "and my FLOWER CROWN", "(Wardrobe) + 3 hairballs!", "YAY", nullptr, 0, 0);
               sound(SND_WIN);
             } else if (q == 1) dialog("MISS WHISKERS", "Any luck? It's pink!", "A garden with a fence...", nullptr, "OK", nullptr, 0, 0);
             else dialog("MISS WHISKERS", "Thank you again, sweetie!", nullptr, nullptr, "BYE", nullptr, 0, 0);
@@ -1642,7 +1646,7 @@ void Game::screenExplore(Canvas& cv) {
       if (g.boss && g.foeHp > 0 && g.myHp > 0) {
         if (g.bossPhase == 1) d.pose = POSE_CROUCH;                       // winding up...
         else if (g.bossPhase == 2) {                                       // ...LEAP across at you
-          const float k = clampf(1.0f - g.bossPhaseT / 0.55f, 0, 1);
+          const float k = clampf(1.0f - g.bossPhaseT / (g.coop ? KING_LEAP_RAID : KING_LEAP), 0, 1);
           d.pose = POSE_POUNCE; fx = 132 - (int)(k * 64); fy = 112 - (int)(sinf(k * 3.14159f) * 24);
         }
       }
@@ -1702,7 +1706,7 @@ void Game::screenExplore(Canvas& cv) {
             g.bossPhase = 1; g.bossPhaseT = 0.25f + pet.rndf() * 0.7f; g.feint = pet.rndf() < 0.22f; g.defended = false; g.defLock = false;
           } else if (g.bossPhase == 1 && g.bossPhaseT <= 0) {
             if (g.feint) { g.bossPhase = 0; g.bossPhaseT = 0.3f + pet.rndf() * 0.9f; }   // ha! not this time
-            else { g.bossPhase = 2; g.bossPhaseT = 0.55f; sound(SND_POUNCE); }
+            else { g.bossPhase = 2; g.bossPhaseT = g.coop ? KING_LEAP_RAID : KING_LEAP; sound(SND_POUNCE); }   // (DEFEND is red for the whole leap)
           } else if (g.bossPhase == 2 && g.bossPhaseT <= 0) {
             if (g.defended) { sound(SND_SQUISH); say("Blocked!"); }
             else { g.myHp--; g.lastHit = 2; g.roundT = 0.001f; sound(SND_HISS); say("OUCH! Defend the leaps!"); }

@@ -61,7 +61,7 @@ static bool whisker(const Img& m, int x, int y) {
 }
 static bool furry(uint8_t v) { return v == FUR || v == FURD || v == FURL || v == MARK || v == MARKD || v == WHT || v == WHTD; }
 
-static Img fluff(const Img& src) {
+static Img fluff(const Img& src, bool scratch = false) {
   const int PAD = 4;                      // room round the frame for the new fur
   Img m; m.w = src.w + 2 * PAD; m.h = src.h + PAD; m.ax = src.ax + PAD; m.ay = src.ay + PAD;
   m.ex2 = src.ex2 ? src.ex2 + 2 * PAD : 0; m.ec2 = src.ec2 ? src.ec2 + 2 * PAD : 0; m.ew = src.ew;
@@ -146,6 +146,7 @@ static Img fluff(const Img& src) {
     for (; y + 2 <= eyeB + 1; y += 3) if (clear3(y, side)) toothB(y, side, cheek, 3);
     // 2. flanks (and the outside of the tail): smaller teeth, spaced out, stopping above the paws
     static const int flank[3] = {1, 1, 2};
+    if (scratch && side > 0) continue;   // (scratching: the paws and the chest are on the right; fur only on the back and tail)
     for (y = eyeB + 2; y + 2 <= bot - 8;) { if (clear3(y, side)) { toothB(y, side, flank, 3); y += 5; } else y++; }
   }
   // 3. lynx tufts: two dark pixels up from each ear tip, leaning outward
@@ -160,7 +161,7 @@ static Img fluff(const Img& src) {
     put(tx, ty, MARK); put(tx, ty - 1, MARK); put(tx + side, ty - 2, MARK);
   }
   // 4. fur ticks on the chest bib (inside the cat: drawn straight onto the white)
-  {
+  if (!scratch) {
     const int cx = mid2 / 2;
     for (int i = 0; i < 3; i++) {
       const int y = neckY + 4 + i * 4, x = cx + (i == 1 ? 3 : -3) + (i == 2 ? 2 : 0);
@@ -176,6 +177,58 @@ static Img fluff(const Img& src) {
     if (near) m.set(x, y, OUT);
   }
   // (the outline pixels just set are not "added", so the loop above cannot chain)
+  return m;
+}
+
+// Scratching frames: in two of the five the raised front paw sat right beside the face, at eye and nose height, so the
+// face looked as if it were on the arm. Move that paw down so its top is just below the nose (where the other frames
+// hold it), join it to the body with a short arm, and close the cheek's outline where it used to touch. A frame whose
+// paw is already below the nose is returned as it is, so running this again changes nothing.
+static Img lowerPaw(const Img& src, bool* changed = nullptr) {
+  Img m = src;
+  if (changed) *changed = false;
+  int faceTop = m.h, noseBot = -1;
+  for (int y = 0; y < m.h; y++) for (int x = 0; x < m.w; x++) {
+    const uint8_t v = m.at(x, y);
+    if ((v == EYE || v == PUP) && y < faceTop) faceTop = y;
+    if (v == NOSE && y > noseBot) noseBot = y;
+  }
+  if (noseBot < 0 || faceTop >= m.h) return m;
+  std::vector<int> R(m.h, -1);   // rightmost solid pixel in each row
+  for (int y = 0; y < m.h; y++) for (int x = m.w - 1; x >= 0; x--) if (solid(m, x, y)) { R[y] = x; break; }
+  // the paw: a bump of 3+ px out to the right that starts at or above the nose
+  int pt = -1;
+  for (int y = faceTop - 6 > 1 ? faceTop - 6 : 1; y <= noseBot; y++) if (R[y - 1] >= 0 && R[y] >= R[y - 1] + 3) { pt = y; break; }
+  if (pt < 0) return m;
+  const int xc = R[pt - 1];        // pixels at x >= xc in the paw's rows are the paw (the head's own outline is left of it)
+  int pb = pt;
+  while (pb + 1 < m.h && R[pb + 1] > xc) pb++;
+  const int D = (noseBot + 1) - pt;   // move it down so its top sits just under the nose
+  if (D <= 0) return m;
+  // lift the paw out
+  struct Px { int x, y; uint8_t v; };
+  std::vector<Px> paw;
+  for (int y = pt; y <= pb; y++) for (int x = xc; x < m.w; x++) if (m.at(x, y) != T) { paw.push_back({x, y, m.at(x, y)}); m.set(x, y, T); }
+  // close the cheek where the paw was: an outline just right of what's left of each row
+  for (int y = pt; y <= pb; y++) {
+    int r = -1; for (int x = xc - 1; x >= 0; x--) if (solid(m, x, y)) { r = x; break; }
+    if (r >= 0 && m.at(r, y) != OUT && r + 1 < m.w) m.set(r + 1, y, OUT);
+  }
+  // grow the frame downwards if the paw would hang off the bottom
+  int need = 0; for (const Px& p : paw) if (p.y + D >= m.h) need = p.y + D - m.h + 1 > need ? p.y + D - m.h + 1 : need;
+  if (need > 0) { Img g2 = m; g2.h += need; g2.p.assign((size_t)g2.w * g2.h, T); for (int y = 0; y < m.h; y++) for (int x = 0; x < m.w; x++) g2.set(x, y, m.at(x, y)); m = g2; }
+  // put it back lower down (only over empty space or outline: never over the cat)
+  for (const Px& p : paw) { const uint8_t c = m.at(p.x, p.y + D); if (c == T || c == OUT) m.set(p.x, p.y + D, p.v); }
+  // the arm: fill the gap between the body and the paw on each of the paw's new rows (outline on its top and bottom rows)
+  const int nt = pt + D, nb = pb + D;
+  for (int y = nt; y <= nb && y < m.h; y++) {
+    int pl = m.w; for (const Px& p : paw) if (p.y + D == y && p.x < pl) pl = p.x;
+    int rb = -1; for (int x = pl - 1; x >= 0; x--) if (m.at(x, y) != T) { rb = x; break; }
+    if (pl >= m.w || rb < 0 || pl - rb <= 1) continue;
+    uint8_t fur = FUR; for (const Px& p : paw) if (p.y + D == y && p.v != OUT) { fur = p.v; break; }
+    for (int x = rb + 1; x < pl; x++) m.set(x, y, (y == nt || y == nb) ? OUT : fur);
+  }
+  if (changed) *changed = true;
   return m;
 }
 
@@ -202,20 +255,28 @@ int main(int argc, char** argv) {
   std::vector<std::vector<uint8_t>> data(n);
   std::vector<SpriteFrame> tab(CAT_FRAMES, CAT_FRAMES + n);
   for (int i = 0; i < n; i++) { const size_t len = frameBytes(CAT_FRAMES[i]); data[i].assign(CAT_DATA + CAT_FRAMES[i].off, CAT_DATA + CAT_FRAMES[i].off + len); }
-  for (int body = 0; body < 3; body++) for (int k = 0; k < N_SIT; k++) {
-    const Img m = fluff(decode(spriteFrame(SET_TABBY, body, SA_SIT, k)));
-    if (m.w > 255 || m.h > 255) { fprintf(stderr, "frame too big\n"); return 1; }
-    const int i = (int)(&spriteFrame(SET_FLUFFY, body, SA_SIT, k) - CAT_FRAMES);
+  auto store = [&](int set, int body, int anim, int k, const Img& m) {
+    if (m.w > 255 || m.h > 255) { fprintf(stderr, "frame too big\n"); exit(1); }
+    const int i = (int)(&spriteFrame(set, body, anim, k) - CAT_FRAMES);
     data[i] = encode(m);
     tab[i].w = (uint8_t)m.w; tab[i].h = (uint8_t)m.h; tab[i].ax = (uint8_t)m.ax; tab[i].ay = (uint8_t)m.ay;
     tab[i].ex2 = (uint8_t)m.ex2; tab[i].ec2 = (uint8_t)m.ec2; tab[i].ew = (uint8_t)m.ew;
+  };
+  for (int body = 0; body < 3; body++) for (int k = 0; k < N_SIT; k++) store(SET_FLUFFY, body, SA_SIT, k, fluff(decode(spriteFrame(SET_TABBY, body, SA_SIT, k))));
+  // scratching: every set's raised paw moved below the face; the Skogkatt's frames rebuilt from the tabby's, soft fur
+  int moved = 0;
+  for (int set = 0; set < SPRITE_SETS; set++) for (int body = 0; body < 3; body++) for (int k = 0; k < spriteAnimFrames(SA_SCRATCH); k++) {
+    if (set == SET_FLUFFY) { store(set, body, SA_SCRATCH, k, fluff(lowerPaw(decode(spriteFrame(SET_TABBY, body, SA_SCRATCH, k))), true)); continue; }
+    bool ch = false; const Img m = lowerPaw(decode(spriteFrame(set, body, SA_SCRATCH, k)), &ch);
+    if (ch) { store(set, body, SA_SCRATCH, k, m); moved++; }
   }
+  printf("scratching frames with the paw moved below the face: %d\n", moved);
   size_t total = 0;
   for (int i = 0; i < n; i++) { tab[i].off = (uint32_t)total; total += data[i].size(); }
   // palettes and the breed -> set table pass through unchanged
   std::string o;
   char b[256];
-  o += "// GENERATED by art/bake.py - do not edit.\n// (Skogkatt sitting frames rebuilt by art/fluffsit.cpp: run it again after any re-bake.)\n#include \"catsprites.h\"\nnamespace cat {\n";
+  o += "// GENERATED by art/bake.py - do not edit.\n// (Skogkatt sitting + scratching frames rebuilt, and every scratching paw moved below the face, by art/fluffsit.cpp: run it again after any re-bake.)\n#include \"catsprites.h\"\nnamespace cat {\n";
   snprintf(b, sizeof b, "const uint16_t CAT_FRAMES_N = %d;\nconst SpriteFrame CAT_FRAMES[] = {\n", n); o += b;
   for (int i = 0; i < n; i++) { snprintf(b, sizeof b, "  {%uu,%d,%d,%d,%d,%d,%d,%d},\n", (unsigned)tab[i].off, tab[i].w, tab[i].h, tab[i].ax, tab[i].ay, tab[i].ex2, tab[i].ec2, tab[i].ew); o += b; }
   o += "};\nconst uint16_t CAT_PALS[10][16] = {\n";
