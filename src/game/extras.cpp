@@ -15,7 +15,7 @@ static const Color GOLD = rgb(250, 230, 150), GREEN = rgb(60, 150, 90), BLUE = r
 // boxes
 // ---------------------------------------------------------------------------------------
 
-static const uint32_t BOX_LIFE[5] = {0, 2 * 3600, 8 * 3600, 24 * 3600, 0};
+static const uint32_t BOX_LIFE[5] = {0, 30 * 60, 2 * 3600, 6 * 3600, 0};   // (a quarter of the original 2 h / 8 h / 24 h)
 static const int BOX_PRICE[5] = {0, 2, 8, 14, 50};
 
 const char* Game::boxName(int t) const {
@@ -79,12 +79,7 @@ void Game::shopBoxes(Canvas& cv, int y0) {
     else snprintf(b, sizeof(b), "%s %dm left", shortN[sv.boxType], (left + 30) / 60);
   }
   cv.text(6, y0 + 2, b, TXT);
-  if (sv.boxType != BT_NONE && sv.boxType >= BT_SHOE) {
-    int refund = BOX_PRICE[sv.boxType] / 2;
-    snprintf(b, sizeof(b), "SELL %d", refund);
-    if (button(cv, 138, y0 - 2, 42, 14, b, RED)) { giveCoins(refund); sv.boxType = BT_NONE; sound(SND_COIN); toast("Box sold for %d", refund); autosave(true); }
-  }
-  static const char* desc[5] = {"", "Lasts 2 hours", "Lasts 8 hours", "Lasts 24 hours", "Lasts forever!"};   // any cat can use any box
+  static const char* desc[5] = {"", "Lasts 30 min", "Lasts 2 hours", "Lasts 6 hours", "Lasts forever!"};   // any cat can use any box
   for (int i = 1; i <= 4; i++) {
     int y = y0 + 14 + (i - 1) * 30;
     cv.panel(4, y, 176, 28, PANEL, BORDER);

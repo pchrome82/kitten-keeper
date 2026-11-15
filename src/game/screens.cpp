@@ -183,7 +183,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.0", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.1", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -538,7 +538,7 @@ void Game::screenShop(Canvas& cv) {
   cv.text(22, 21, b, coinColor(GOLD));
   if (shopPage_ < 0) {   // the shop menu
     struct Opt { const char* label; Color col; };
-    const Opt opts[5] = {{"WARDROBE", rgb(190, 90, 150)}, {"GOODS", GREEN}, {"FURNITURE", BLUE}, {"BOXES", rgb(190, 140, 70)}, {"HOMES", rgb(120, 90, 190)}};
+    const Opt opts[5] = {{"WARDROBE", rgb(190, 90, 150)}, {"GOODS", GREEN}, {"FURNITURE", BLUE}, {"BOXES", rgb(190, 140, 70)}, {"HOMES", rgb(40, 150, 160)}};
     for (int i = 0; i < 5; i++) {
       if (button(cv, 20, 34 + i * 32, 144, 28, opts[i].label, opts[i].col)) {
         if (i == 0) { wardFromShop_ = true; wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); return; }
@@ -640,7 +640,7 @@ void Game::screenShop(Canvas& cv) {
 
 void Game::screenSkins(Canvas& cv) {
   drawBackdrop(cv, false);
-  panelTitle(cv, "SKINS & BREEDS", 6);
+  panelTitle(cv, "CHANGE BREED", 6);
   int list[NUM_BREED_SLOTS], nList = 0;
   for (int i = 0; i < NUM_BREEDS; i++) list[nList++] = i;
   for (int i = BR_RAINBOW; i <= BR_HAMSTER; i++) if (sv.unlocked & (1u << i)) list[nList++] = i;
@@ -774,9 +774,7 @@ void Game::screenMenu(Canvas& cv) {
   const int bh = 22, g = 3; int y = 20;
   if (button(cv, 20, y, 144, bh, "STATS", BLUE)) setScreen(S_STATS);
   y += bh + g;
-  if (button(cv, 20, y, 144, bh, "SKINS", BLUE)) { skinSel_ = pet.d.breed; setScreen(S_SKINS); }
-  y += bh + g;
-  if (button(cv, 20, y, 144, bh, "WARDROBE", rgb(190, 90, 150))) { wardFromShop_ = false; wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); }
+  if (button(cv, 20, y, 144, bh, "CHANGE BREED", BLUE)) { skinSel_ = pet.d.breed; setScreen(S_SKINS); }
   y += bh + g;
   if (button(cv, 20, y, 144, bh, "ALARM CLOCK", BLUE)) {
     alarmH_ = sv.alarmH; alarmM_ = sv.alarmM; setScreen(S_ALARM_SET);
@@ -823,7 +821,7 @@ void Game::screenHelp(Canvas& cv) {
       row(-1, "A bar turns RED", "when it drops below 25.", "Explore uses 50 energy.");
       break;
     case 2:
-      row(-1, "WEIGHT (Stats screen)", "Heavier = slower speed,", "but stronger attacks!");
+      row(-1, "WEIGHT (Stats screen)", "Heavier = slower speed.", "Weight 50 is ideal.");
       row(-1, "Grumpy (Stats screen)", "Goes up when ignored.", "Too high and they run away!");
       row(-1, "Mood & life", "Happy cats stay longer.", "Check STATS in the Menu.");
       break;
@@ -903,7 +901,7 @@ void Game::screenStats(Canvas& cv) {
       cv.rect(x0 + 34, 173, (int)(24 * (f > 1 ? 1 : (f < 0 ? 0 : f)) + 0.5f), 6, rows[i].c);
     }
   }
-  snprintf(b, sizeof(b), "Catches: %d  Hairballs: %lu", pet.d.preyCount, (unsigned long)sv.lifeHairballs);
+  snprintf(b, sizeof(b), "Catches: %d", pet.d.preyCount);
   cv.textCenter(W / 2, 183, b, DIM);
   if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) setScreen(S_MENU);
 }
@@ -1002,7 +1000,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.0", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.1", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
