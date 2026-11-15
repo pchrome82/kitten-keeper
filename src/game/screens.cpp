@@ -183,7 +183,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.2.9", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.0", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -506,11 +506,6 @@ static const ShopItem FURN[5] = {
   {"Cat Tree", "Nap+15% Fun+15%", 15, ITEM_TREE},
   {"Luxury Chair", "Nap+30% Fun+10%", 25, ITEM_LCHAIR},
   {"Cat Tree + Bed", "Nap+50% Fun+20%", 45, ITEM_TREEBED}};
-static const ShopItem TOYS[4] = {
-  {"Toy Mouse", "Fun +5%", 5, ITEM_MOUSE},
-  {"Yarn Ball", "Fun +6%", 6, ITEM_YARN},
-  {"Crinkle Tunnel", "Fun +8%", 8, ITEM_TUNNEL},
-  {"Feather Wand", "Fun +10%", 10, ITEM_WAND}};
 
 void Game::updateToys() {
   float m = 1.0f;
@@ -535,16 +530,28 @@ void Game::updateToys() {
 
 void Game::screenShop(Canvas& cv) {
   drawBackdrop(cv, false);
-  panelTitle(cv, "HAIRBALL SHOP", 6);
+  static const char* TITLES[5] = {"GOODS", "FURNITURE", "BOXES", "", "HOMES"};
+  panelTitle(cv, shopPage_ < 0 ? "HAIRBALL SHOP" : TITLES[shopPage_], 6);
   drawIcon(cv, 6, 14, 24);
   char b[48];
   coinText(b, sizeof(b));
   cv.text(22, 21, b, coinColor(GOLD));
-  static const char* TABS[5] = {"GOODS", "FURNI", "BOXES", "TOYS", "HOMES"};
-  for (int i = 0; i < 5; i++) {
-    if (button(cv, 4 + i * 36, 32, 34, 14, TABS[i], shopPage_ == i ? rgb(120, 90, 190) : rgb(60, 48, 92))) { shopPage_ = i; if (i == 4) homeSel_ = sv.room; }
+  if (shopPage_ < 0) {   // the shop menu
+    struct Opt { const char* label; Color col; };
+    const Opt opts[5] = {{"WARDROBE", rgb(190, 90, 150)}, {"GOODS", GREEN}, {"FURNITURE", BLUE}, {"BOXES", rgb(190, 140, 70)}, {"HOMES", rgb(120, 90, 190)}};
+    for (int i = 0; i < 5; i++) {
+      if (button(cv, 20, 34 + i * 32, 144, 28, opts[i].label, opts[i].col)) {
+        if (i == 0) { wardFromShop_ = true; wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); return; }
+        static const int PAGE[5] = {0, 0, 1, 2, 4};
+        shopPage_ = PAGE[i]; if (shopPage_ == 4) homeSel_ = sv.room;
+      }
+    }
+    updateParticles(dt);
+    drawToasts(cv);
+    if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) setScreen(S_HOME);
+    return;
   }
-  const int y0 = 49;
+  const int y0 = 34;
   if (shopPage_ == 0) {
   struct Row { const char* name; const char* desc; int price; int icon; bool avail; };
   int tier = sv.litterTier;
@@ -591,8 +598,8 @@ void Game::screenShop(Canvas& cv) {
   } else if (shopPage_ == 2) {
     shopBoxes(cv, y0);
   } else {
-    const ShopItem* its = shopPage_ == 1 ? FURN : TOYS;
-    int n = shopPage_ == 1 ? 5 : 4;
+    const ShopItem* its = FURN;
+    int n = 5;
     for (int i = 0; i < n; i++) {
       int y = y0 + i * 29;
       const ShopItem& it = its[i];
@@ -624,7 +631,7 @@ void Game::screenShop(Canvas& cv) {
   }
   updateParticles(dt);
   drawToasts(cv);
-  if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) setScreen(S_HOME);
+  if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) shopPage_ = -1;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -769,7 +776,7 @@ void Game::screenMenu(Canvas& cv) {
   y += bh + g;
   if (button(cv, 20, y, 144, bh, "SKINS", BLUE)) { skinSel_ = pet.d.breed; setScreen(S_SKINS); }
   y += bh + g;
-  if (button(cv, 20, y, 144, bh, "WARDROBE", rgb(190, 90, 150))) { wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); }
+  if (button(cv, 20, y, 144, bh, "WARDROBE", rgb(190, 90, 150))) { wardFromShop_ = false; wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); }
   y += bh + g;
   if (button(cv, 20, y, 144, bh, "ALARM CLOCK", BLUE)) {
     alarmH_ = sv.alarmH; alarmM_ = sv.alarmM; setScreen(S_ALARM_SET);
@@ -995,7 +1002,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.2.9", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.0", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
@@ -1528,7 +1535,7 @@ void Game::screenWardrobe(Canvas& cv) {
       else { sv.coins -= sc->price; ownOf(sv, tab) |= (uint8_t)(1u << sid); wornOf(sv, tab) = (uint8_t)sid; sound(SND_COIN); toast("Bought %s!", sc->name); autosave(true); }
     }
   } else button(cv, 84, 156, 96, 22, sc && sc->price < 0 ? "GIFT BOX ONLY" : "EXPLORE REWARD", rgb(100, 80, 110), false);
-  if (button(cv, 84, 196, 96, 22, "BACK", BLUE)) setScreen(S_MENU);
+  if (button(cv, 84, 196, 96, 22, "BACK", BLUE)) { if (wardFromShop_) { wardFromShop_ = false; shopPage_ = -1; setScreen(S_SHOP); } else setScreen(S_MENU); }
   updateParticles(dt);
   drawToasts(cv);
 }

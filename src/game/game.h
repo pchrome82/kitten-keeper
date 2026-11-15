@@ -314,7 +314,8 @@ class Game {
   bool buttonOff_ = false;   // the side button turned the screen off: motion must not wake it
   float ambT_ = 0; int ambPaid_ = 0, ambOwe_ = 0;   // the ambulance scene: time, hairballs paid, hairballs put on the tab
   char endMsg_[6][40];   // the ending story (3 lines; the ran-away one has 6)
-  int shopPage_ = 0;
+  int shopPage_ = -1;    // -1 = the shop menu; 0 goods, 1 furniture, 2 boxes, 4 homes
+  bool wardFromShop_ = false;   // the Wardrobe was opened from the shop menu: BACK returns there
   int helpPage_ = 0;
   int journalPage_ = 0;
   int homeSel_ = 0;      // shop HOMES tab: which home is previewed
@@ -335,6 +336,7 @@ class Game {
   bool wasNapping_ = false, lapDue_ = false;   // out of energy -> Lap Cat as soon as you're home
   void drawItem(Canvas& cv, int item, int x, int y);
   void updateToys();
+  void giveToy(int id) { if (!hasItem(id)) { sv.items |= (uint16_t)(1u << id); updateToys(); } }   // Explore finds: the toys are no longer sold
   // boxes, magic cat, litter (extras.cpp)
   void updateBox();
   // journal, birthdays and seasons (extras.cpp)

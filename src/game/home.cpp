@@ -303,7 +303,7 @@ void Game::drawToolbar(Canvas& cv, bool interactive) {
           else setScreen(S_PLAY);
           break;
         case 2: setScreen(S_LITTER); break;
-        case 3: shopPage_ = 0; setScreen(S_SHOP); break;
+        case 3: shopPage_ = -1; setScreen(S_SHOP); break;
         case 4: setScreen(S_MENU); break;
       }
     }

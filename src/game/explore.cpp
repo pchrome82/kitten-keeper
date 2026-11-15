@@ -1054,13 +1054,13 @@ void Game::screenExplore(Canvas& cv) {
             sv.ex.chests |= (uint16_t)(1u << id);
             sound(SND_WIN);
             if (id == CH_KEY) { sv.ex.flags |= 1; dialog("TREASURE!", "An old brass KEY!", "It must open a gate", "somewhere up north-east.", "NICE", nullptr, 0, 0); }
-            else if (id == CH_CAVEGOLD) { giveCoins(3); g.found += 3; dialog("TREASURE!", "3 hairballs!", nullptr, nullptr, "NICE", nullptr, 0, 0); }
+            else if (id == CH_CAVEGOLD) { giveCoins(3); g.found += 3; giveToy(ITEM_MOUSE); dialog("TREASURE!", "3 hairballs and a", "TOY MOUSE for home!", nullptr, "NICE", nullptr, 0, 0); }
             else if (id == CH_PEN) { giveCoins(2); g.found += 2; sv.ex.flags |= 16; dialog("TREASURE!", "2 hairballs and...", "a pink YARN BALL!", "Someone must miss this.", "NICE", nullptr, 0, 0); }
-            else if (id == CH_NOOK) { giveCoins(4); g.found += 4; dialog("TREASURE!", "4 hairballs!", "Chonk power pays off.", nullptr, "NICE", nullptr, 0, 0); }
+            else if (id == CH_NOOK) { giveCoins(4); g.found += 4; giveToy(ITEM_WAND); dialog("TREASURE!", "4 hairballs and a", "FEATHER WAND! Chonk", "power pays off.", "NICE", nullptr, 0, 0); }
             else if (id == CH_CRYSTAL) {
-              sv.ex.journal |= EXJ_CRYSTAL;
+              sv.ex.journal |= EXJ_CRYSTAL; giveToy(ITEM_TUNNEL);
               char e[30]; snprintf(e, sizeof(e), "Each screen: -%d energy.", (int)exScreenCost());
-              dialog("SECRET TREASURE!", "A glowing CAVE CRYSTAL!", "It makes your paws light.", e, "WOW", nullptr, 0, 0);
+              dialog("SECRET TREASURE!", "A glowing CAVE CRYSTAL!", e, "+ a CRINKLE TUNNEL!", "WOW", nullptr, 0, 0);
             }
             autosave(true);
           }
