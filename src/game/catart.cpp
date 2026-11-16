@@ -97,14 +97,32 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
   const int hatY = eg.ok ? top : top + k / 6;   // sits between the ears
   auto u = [&](float f) { return (int)(k * f + 0.5f); };
   // ---- body (behind/over the body) ----
-  const bool riderBehind = (d.body == BD_SADDLE || d.body == BD_WINGS) && !side && anim != SA_BACK;   // facing the player: the rider (or the wings) is on their back, behind them
-  auto wing = [&](int wx, int wy, int dir) {   // one feathery wing, its tip pointing up and out to `dir`
-    const int rx = u(0.3f) + 1, ry = u(0.17f) + 1;
-    const Color wh = rgb(252, 252, 255), sh = rgb(190, 214, 246);
-    cv.ellipse(wx + dir * rx / 3, wy - ry / 2, rx + 1, ry + 1, ol); cv.ellipse(wx, wy + ry / 2, rx * 2 / 3 + 1, ry + 1, ol);
-    cv.ellipse(wx + dir * rx / 3, wy - ry / 2, rx, ry, wh); cv.ellipse(wx, wy + ry / 2, rx * 2 / 3, ry, wh);
-    cv.hline(wx + (dir > 0 ? 0 : -rx * 2 / 3), wy - ry / 2, rx * 2 / 3, sh);                 // feather lines
-    cv.hline(wx + (dir > 0 ? -rx / 4 : -rx / 3), wy + ry / 2, rx / 2 + 1, sh);
+  const bool riderBehind = (d.body == BD_SADDLE || d.body == BD_WINGS || d.body == BD_BFLY) && !side && anim != SA_BACK;   // facing the player: the rider (or the wings) is on their back, behind them
+  auto wing = [&](int wx, int wy, int dir) {   // one big angel wing: a fan of long, rounded feathers (tall at the front, fanning out and down)
+    const Color wh = rgb(252, 252, 255), sh = rgb(178, 204, 246), gl = rgb(255, 238, 170);
+    static const float ANG[6] = {98, 82, 65, 48, 31, 14}, LEN[6] = {0.8f, 1.0f, 1.14f, 1.16f, 1.06f, 0.86f};   // degrees above level; length (x the head's half width)
+    const float r0 = u(0.17f) + 0.5f;
+    float tx[6], ty[6];
+    for (int i = 0; i < 6; i++) { const float a = ANG[i] * 0.0174533f, L = LEN[i] * (float)k * 1.05f; tx[i] = wx + dir * cosf(a) * L; ty[i] = wy - sinf(a) * L; }
+    auto capsule = [&](int i, float grow, Color c) {   // a feather: a row of discs from the shoulder out to the tip, tapering a little
+      const float dx = tx[i] - wx, dy = ty[i] - wy; const int n = (int)(sqrtf(dx * dx + dy * dy)) + 1;
+      for (int s = 0; s <= n; s++) { const float f = (float)s / n; cv.disc((int)(wx + dx * f + 0.5f), (int)(wy + dy * f + 0.5f), (int)(r0 * (1.0f - 0.22f * f) + grow + 0.5f), c); }
+    };
+    for (int i = 5; i >= 0; i--) capsule(i, 1.0f, ol);   // one outline round the whole fan,
+    for (int i = 5; i >= 0; i--) capsule(i, 0.0f, wh);   // then the white feathers over it
+    for (int i = 0; i < 6; i++)                          // a soft shadow line down each one
+      cv.line(wx + (int)((tx[i] - wx) * 0.3f), wy + (int)((ty[i] - wy) * 0.3f), (int)(tx[i] - (tx[i] - wx) * 0.14f), (int)(ty[i] - (ty[i] - wy) * 0.14f), sh);
+    cv.set((int)(tx[2] - (tx[2] - wx) * 0.1f), (int)(ty[2] - (ty[2] - wy) * 0.1f), gl);   // a glint on a long feather
+  };
+  auto bwing = [&](int wx, int wy, int dir) {   // one butterfly wing: a big upper lobe and a smaller lower lobe, with spots
+    const Color pk = rgb(250, 130, 190), pkD = rgb(214, 80, 160), vi = rgb(150, 100, 230), wh = rgb(255, 240, 250);
+    const int ux = wx + dir * u(0.5f), uy = wy - u(0.42f), lx = wx + dir * u(0.36f), ly = wy + u(0.2f);
+    const int urx = u(0.5f) + 1, ury = u(0.4f) + 1, lrx = u(0.34f) + 1, lry = u(0.28f) + 1;
+    cv.ellipse(ux, uy, urx + 1, ury + 1, ol); cv.ellipse(lx, ly, lrx + 1, lry + 1, ol);
+    cv.ellipse(ux, uy, urx, ury, pk); cv.ellipse(lx, ly, lrx, lry, vi);
+    cv.ellipse(ux + dir * urx / 4, uy - ury / 5, urx * 2 / 3, ury * 2 / 3, pkD);
+    cv.ellipse(ux + dir * urx / 4, uy - ury / 5, urx / 2, ury / 2, pk);
+    cv.disc(ux + dir * urx / 3, uy - ury / 4, u(0.07f) + 1, wh); cv.disc(lx + dir * lrx / 3, ly + lry / 5, u(0.05f) + 1, wh);   // the spots
   };
   if (phase == 0 && !riderBehind) return;
   if (phase == 1 && riderBehind) {}   // (already drawn, behind them)
@@ -132,11 +150,23 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
       cv.line(sx0, sy, tailX, sy + u(0.1f) + wave, ol); cv.line(tailX, sy + u(0.1f) + wave, tailX, by + wave, ol);
       cv.disc(sx0, sy, u(0.07f) + 1, gold);
     }
-  } else if (d.body == BD_WINGS) {   // little angel wings, with a gentle flap
+  } else if (d.body == BD_WINGS || d.body == BD_BFLY) {   // big angel wings (or butterfly wings), with a gentle flap
     const int flap = (int)(sinf(d.t * 5) * u(0.05f));
-    if (back) { wing(hx - u(0.34f), neckY + u(0.2f) + flap, -1); wing(hx + u(0.34f), neckY + u(0.2f) + flap, 1); }   // on their back, in full view
-    else if (!side) { wing(hx - u(0.62f), neckY - u(0.02f) + flap, -1); wing(hx + u(0.62f), neckY - u(0.02f) + flap, 1); }   // peeking out behind the shoulders
-    else wing((b[0] + b[2]) / 2 + (L ? 1 : -1) * u(0.2f), b[1] + (int)(h * 0.3f) + flap, L ? 1 : -1);   // side on: one wing over the back
+    auto wg = [&](int x, int y, int dr) { if (d.body == BD_WINGS) wing(x, y, dr); else bwing(x, y, dr); };
+    if (back) { wg(hx - u(0.42f), neckY + u(0.02f) + flap, -1); wg(hx + u(0.42f), neckY + u(0.02f) + flap, 1); }   // on their back, in full view
+    else if (!side) { wg(hx - u(0.42f), neckY - u(0.1f) + flap, -1); wg(hx + u(0.42f), neckY - u(0.1f) + flap, 1); }   // spread out behind the shoulders
+    else wg((b[0] + b[2]) / 2 + (L ? 1 : -1) * u(0.2f), b[1] + (int)(h * 0.3f) + flap, L ? 1 : -1);   // side on: one wing over the back
+  } else if (d.body == BD_SHIRT) {   // a red tee with a white stripe, over the chest (or the back)
+    const Color tee = rgb(228, 76, 92), teeD = rgb(168, 48, 70), st = rgb(250, 246, 250);
+    int sx, sy, rx, ry;
+    if (side) { rx = (int)(w * 0.26f) + 1; ry = rx * 9 / 20 + 1; sx = (b[0] + b[2]) / 2 + (L ? -1 : 1) * (int)(w * 0.08f); sy = b[3] - ry - (int)(h * 0.22f); }
+    else if (back) { sx = (b[0] + b[2]) / 2; sy = b[1] + (int)(h * 0.66f); rx = u(0.44f); ry = u(0.3f); }
+    else { sx = hx; sy = neckY + u(0.16f); rx = u(0.4f); ry = u(0.2f) + 1; }
+    if (!side) { cv.disc(sx - rx, sy - ry / 2, u(0.12f) + 2, ol); cv.disc(sx + rx, sy - ry / 2, u(0.12f) + 2, ol); cv.disc(sx - rx, sy - ry / 2, u(0.12f) + 1, teeD); cv.disc(sx + rx, sy - ry / 2, u(0.12f) + 1, teeD); }   // sleeves
+    cv.ellipse(sx, sy, rx + 1, ry + 1, ol); cv.ellipse(sx, sy, rx, ry, tee);
+    cv.hline(sx - rx + 1, sy, rx * 2 - 1, st); cv.hline(sx - rx + 1, sy + 1, rx * 2 - 1, st);   // the stripe
+    if (!side && !back) cv.tri(sx - u(0.1f), sy - ry, sx + u(0.1f), sy - ry, sx, sy - ry + u(0.12f) + 1, ol);   // the collar
+
   } else if (d.body == BD_SADDLE) {
     // saddle on them back + a very chubby-cheeked hamster rider
     int sx, sy;
@@ -298,10 +328,25 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
         cv.set(cx, hatY - ch / 4, rgb(230, 40, 60)); cv.set(cx - bw * 2 / 3, hatY - ch / 4, rgb(60, 140, 240)); cv.set(cx + bw * 2 / 3, hatY - ch / 4, rgb(60, 200, 120));
         break; }
       case HAT_WIZARD: {
-        int bw = u(0.4f), ch = u(0.85f);
-        cv.ellipse(cx, hatY, bw + 1, u(0.08f) + 2, ol); cv.ellipse(cx, hatY, bw, u(0.08f) + 1, rgb(90, 60, 170));
-        cv.tri(cx - u(0.22f), hatY, cx + u(0.22f), hatY, cx + u(0.12f), hatY - ch, rgb(110, 76, 200));
-        cv.set(cx - u(0.05f), hatY - ch / 3, rgb(255, 240, 120)); cv.set(cx + u(0.05f), hatY - ch * 2 / 3, rgb(255, 240, 120));
+        // a tall, outlined cone with a lit left edge and a shaded right side, a bent tip, a gold band, and stars
+        // scattered evenly (staggered rows) over the whole cone
+        const int bw = u(0.46f), cwd = u(0.28f), ch = u(0.95f), lean = u(0.1f);
+        const int tipx = cx + lean, tipy = hatY - ch;
+        const Color co = rgb(112, 78, 204), coD = rgb(78, 52, 162), coL = rgb(156, 126, 240), brim = rgb(92, 62, 176), star = rgb(255, 238, 120), gold = rgb(250, 206, 70);
+        cv.ellipse(cx, hatY, bw + 1, u(0.09f) + 2, ol); cv.ellipse(cx, hatY, bw, u(0.09f) + 1, brim);
+        cv.tri(cx - cwd - 1, hatY + 1, cx + cwd + 1, hatY + 1, tipx, tipy - 1, ol);
+        cv.tri(cx - cwd, hatY, cx + cwd, hatY, tipx, tipy, co);
+        cv.tri(cx + cwd / 3, hatY, cx + cwd, hatY, tipx, tipy, coD);                       // the shaded right side
+        cv.line(cx - cwd * 2 / 3, hatY - 1, tipx - 1, tipy + 2, coL);                      // the lit left edge
+        const int bandH = u(0.1f) + 1;
+        cv.rect(cx - cwd, hatY - bandH, cwd * 2, bandH, gold); cv.hline(cx - cwd, hatY - bandH, cwd * 2, rgb(255, 232, 130));
+        const bool bigStars = cwd >= 6;                                                    // (a plus-shaped star where there's room, else a pixel)
+        static const float SF[6] = {0.26f, 0.30f, 0.46f, 0.60f, 0.62f, 0.78f}, SR[6] = {-0.5f, 0.5f, 0.0f, -0.35f, 0.35f, 0.0f};   // height along the cone, across it
+        for (int s = 0; s < 6; s++) {
+          const int sy = hatY - (int)(ch * SF[s] + 0.5f), sx = cx + (int)(lean * SF[s]) + (int)(cwd * (1.0f - SF[s]) * SR[s] + (SR[s] < 0 ? -0.5f : 0.5f));
+          cv.set(sx, sy, star);
+          if (bigStars && (s == 2 || s == 5 || (s & 1) == 0)) { cv.set(sx - 1, sy, star); cv.set(sx + 1, sy, star); cv.set(sx, sy - 1, star); cv.set(sx, sy + 1, star); }
+        }
         break; }
       case HAT_SANTA: {
         int bw = u(0.3f), ch = u(0.5f);
@@ -412,7 +457,7 @@ static CatMetrics drawSpriteCat(Canvas& cv, int ox, int oy, const CatDraw& d) {
     eyeX = (int)(sx / gSpriteEyes.n); eyeY = (int)(sy / gSpriteEyes.n);
   }
   const bool sideView = anim != SA_SIT && anim != SA_SCRATCH && anim != SA_BACK;
-  if ((d.body == BD_SADDLE || d.body == BD_WINGS) && !sideView && anim != SA_BACK && b[0] <= b[2]) {   // the rider (or the wings) sits on their back: draw it, then the cat again in front
+  if ((d.body == BD_SADDLE || d.body == BD_WINGS || d.body == BD_BFLY) && !sideView && anim != SA_BACK && b[0] <= b[2]) {   // the rider (or the wings) sits on their back: draw it, then the cat again in front
     drawSpriteCostume(cv, d, b, sideView, anim == SA_SLEEP, pal, set, body, anim, 0);
     drawSprite(cv, f, pal, ox, oy, d.faceLeft, sc, nullptr, rainbow ? d.t : -1.0f);
   }

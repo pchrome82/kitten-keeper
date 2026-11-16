@@ -179,7 +179,7 @@ struct ExploreGame {
   // dialog
   char dTitle[24]; char dLine[4][30]; char dA[14], dB[14]; int dAct; int dArg;
   // fight
-  int foeSpecies; float foeStr; int foeHp, foeMax, myHp, myMax; float marker, markerDir, roundT; int lastHit; bool boss;
+  int foeSpecies; float foeStr; int foeHp, foeMax, myHp, myMax; float marker, markerDir, roundT; int lastHit; bool boss; int prize = 0;   // prize: the King rematch drop (0 = 20 hairballs, 1 Cowboy Hat, 2 Bandana, 3 Angel Wings)
   float throwT, throwCd; bool throwHit; bool hbKO;   // hbKO: this fight was won with a hairball   // a hairball in flight (1 hairball: one-hit KO, 5% miss; the King dodges ~33%)
   int bossPhase; float bossPhaseT; bool feint, defended, defLock;   // the King's leaps: 0 waiting, 1 crouching (warning), 2 in the air (DEFEND now!)
   float zoneC, zoneW;            // the green zone: centre and half-width (0..1); it moves after every swing

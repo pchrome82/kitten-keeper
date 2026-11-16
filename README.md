@@ -37,7 +37,7 @@ A plain `pio run` builds both boards. The first build downloads the ESP32 toolch
 - **Explore:** once grown up, take your cat on a trip across a map of gardens, the river, caves, downtown and a few secrets. **Tap a spot** and your cat walks there by itself (a quick tap while it's walking stops it), or **hold and drag** to steer; walk off an edge to reach the next screen. Tap things next to your cat to search nests and loose rocks, read signs, open chests and talk to the neighbours, whose houses you can visit. Fish in the river, mind the traffic downtown, and fight wild cats: press **SCRATCH** when the line is on the green (the bar holds for a second to show where you hit) or throw a hairball. Up to four devices can **Explore Together** over a direct radio link (ESP-NOW, no router).
 
 - **Hairballs** are the currency. Spend them in the shop on supplies, furniture, boxes and **homes**, or on skins and costumes. Toys are found while exploring.
-- **Wardrobe:** hats, glasses, neckwear and body costumes. Some are bought, some are Explore rewards, and eight are **gift-only**.
+- **Wardrobe:** hats, glasses, neckwear and body costumes. Some are bought, some are Explore rewards, five are **gift-only**, and the Alley King hands out three more on rematches.
 - **Gift boxes:** a wrapped box turns up on the cat's birthday, at Halloween, the holidays and New Year, and after five well-cared-for days in a row. Tap it to open it.
 - **Shake or lift the device while the cat sleeps** and it wakes up grumpy.
 - **Bad ownership** (hunger, mess, neglect, grumpiness) makes the cat **run away**. A well-kept cat lives about a month and retires into the journal.

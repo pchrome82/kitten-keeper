@@ -856,7 +856,15 @@ void Game::screenExplore(Canvas& cv) {
     g.zoneW = clampf(base * (0.75f + pet.rndf() * 0.5f), 0.04f, 0.17f);
     g.zoneC = g.zoneW + pet.rndf() * (1.0f - 2.0f * g.zoneW);
   };
+  auto rematchPrize = [&]() -> int {   // one prize per rematch: a random one of the three he still has
+    int c[3], n = 0;
+    if (!((sv.ownHat >> HAT_COWBOY) & 1)) c[n++] = 1;
+    if (!((sv.ownNeck >> NK_BANDANA) & 1)) c[n++] = 2;
+    if (!((sv.ownCollar >> BD_WINGS) & 1)) c[n++] = 3;
+    return n ? c[pet.rnd() % n] : 0;
+  };
   auto startFight = [&](int species, float str, int hp, bool boss) {
+    g.prize = (boss && (sv.ex.flags & 4)) ? rematchPrize() : 0;
     g.state = 3; g.foeSpecies = species; g.foeStr = str; g.foeHp = g.foeMax = hp; g.myHp = g.myMax = boss ? 4 : 3;
     g.marker = 0; g.markerDir = 1; g.roundT = 0; g.lastHit = 0; g.boss = boss; g.fights++; g.swingT = 0;
     g.zoneW = clampf(0.10f + 0.025f * (pet.power() - 0.9f), 0.06f, 0.17f); g.zoneC = 0.5f;   // the first swing: centred
@@ -1105,7 +1113,7 @@ void Game::screenExplore(Canvas& cv) {
             if (sv.ex.flags & 64) dialog("THE HIDDEN HERMIT", "The amulet suits you.", "Swift and strong. Go!", nullptr, "BYE", nullptr, 0, 0);
             else dialog("THE HIDDEN HERMIT", "You found me! My WILD", "AMULET: +15% attack and", "+15% speed. 40 hairballs.", "BUY (40)", "NO", 3, 0);
           } else if (g.room == P_KING) {
-            if (sv.ex.flags & 4) dialog("ALLEY KING", "You again? Fine, fine.", "You're the boss now.", nullptr, "HEH", nullptr, 0, 0);
+            if (sv.ex.flags & 4) { const bool any = !((sv.ownHat >> HAT_COWBOY) & 1) || !((sv.ownNeck >> NK_BANDANA) & 1) || !((sv.ownCollar >> BD_WINGS) & 1); dialog("ALLEY KING", "Back for a rematch?", any ? "Win a prize from my stash:" : "Beat me again for", any ? "Cowboy Hat, Bandana, Wings" : "20 hairballs!", "FIGHT!", "NO", 2, 0); }
             else dialog("ALLEY KING", "Who dares enter MY lair?", "Only 10 HAIRBALL hits can", "beat me! DEFEND my leaps!", "FIGHT!", "RUN", 2, 0);
           }
         } else tapped = false;
@@ -1449,7 +1457,7 @@ void Game::screenExplore(Canvas& cv) {
     if (g.room == P_WHISKERS) { cv.ellipse(OX + 5 * TS + 8, OY + 5 * TS + 8, 30, 10, rgb(200, 150, 190)); drawMiniCat(cv, nx, ny, false, g.t, 1, 0.0f, false); }
     if (g.room == P_HERMIT) drawHermit(cv, nx, ny + 2, g.t);
     if (g.room == P_SECRET) drawHermit(cv, nx, ny + 2, g.t, true);
-    if (g.room == P_KING && !(sv.ex.flags & 4)) {
+    if (g.room == P_KING) {
       const int kx = OX + 5 * TS + 8, ky = OY + 2 * TS + 14;
       drawMiniCat(cv, kx - 3, ky, false, g.t, 2, 1.0f, false); drawMiniCat(cv, kx + 3, ky, true, g.t, 2, 1.0f, false);   // a BIG cat
       cv.rect(kx - 3, ky - 15, 7, 3, rgb(250, 210, 60)); cv.set(kx - 3, ky - 16, rgb(250, 210, 60)); cv.set(kx, ky - 17, rgb(250, 210, 60)); cv.set(kx + 3, ky - 16, rgb(250, 210, 60));
@@ -1775,6 +1783,22 @@ void Game::screenExplore(Canvas& cv) {
     } else {
       if (g.foeHp <= 0) {
         if (g.boss) {
+          if (sv.ex.flags & 4) {   // a rematch: the crown is already yours, so he pays out one prize from his stash (a Cowboy Hat, Bandana or Angel Wings you don't own yet; 20 hairballs once you have them all)
+            static const char* PN[4] = {"+ 20 hairballs!", "+ the COWBOY HAT!", "+ the BANDANA!", "+ the ANGEL WINGS!"};
+            cv.textCenter(W / 2, 118, "A rematch won!", rgb(255, 240, 160));
+            cv.textCenter(W / 2, 128, PN[g.prize & 3], rgb(255, 240, 160));
+            cv.textCenter(W / 2, 138, "Exhausting: -15 energy", rgb(150, 200, 255));
+            if (button(cv, 62, 148, 60, 22, "YES!", C_GREEN) && !fxBusy) {
+              pet.d.energy = clampf(pet.d.energy - 15, 0, 100);
+              if (g.prize == 1) sv.ownHat |= (uint8_t)(1u << HAT_COWBOY);
+              else if (g.prize == 2) sv.ownNeck |= (uint8_t)(1u << NK_BANDANA);
+              else if (g.prize == 3) sv.ownCollar |= (uint8_t)(1u << BD_WINGS);
+              else { giveCoins(20); g.found += 20; }
+              if (g.prize) toast("New in the Wardrobe!");
+              g.wins++; sound(SND_WIN); autosave(true);
+              g.fxKind = 2; g.fxT = 0; g.fxAfter = 1;
+            }
+          } else {
           cv.textCenter(W / 2, 118, "The crown is yours!", rgb(255, 240, 160));
           cv.textCenter(W / 2, 128, "+ the Classy Log Cabin!", rgb(255, 240, 160));
           cv.textCenter(W / 2, 138, "Exhausting: -15 energy", rgb(150, 200, 255));
@@ -1783,6 +1807,7 @@ void Game::screenExplore(Canvas& cv) {
             sv.ex.flags |= 4; sv.ownHat |= (uint8_t)(1u << HAT_CROWN); sv.roomsOwned |= (uint8_t)(1u << 5);
             g.wins++; sound(SND_WIN); toast("Crown + Log Cabin unlocked!"); recordMilestone(MS_KING); autosave(true);
             g.fxKind = 2; g.fxT = 0; g.fxAfter = 1;
+          }
           }
         } else {
           cv.textCenter(W / 2, 122, "Prize: 1 hairball!", rgb(255, 240, 160));

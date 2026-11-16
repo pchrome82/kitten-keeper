@@ -1,0 +1,13 @@
+# Changelog
+
+Newest first. One line per version.
+
+- **v1.3.2:** New T-Shirt and Butterfly Wings in the Wardrobe; bigger angel wings and a new wizard hat; the Santa Hat is sold in the shop; Alley King rematches award the Cowboy Hat, Bandana or Angel Wings (then 20 hairballs); a secret breed changed to a regular one stays grown up.
+- **v1.3.1:** Boxes last a quarter as long as before (Tissue 30 min, Shoebox 2 h, Cardboard 6 h, Crate still forever) and can no longer be sold back; SKINS is now CHANGE BREED; the Homes button is teal; the lifetime hairball count is gone from Stats.
+- **v1.3.0:** The shop is a menu of pages (Wardrobe, Goods, Furniture, Boxes, Homes), and toys are found in Explore instead of sold.
+- **v1.2.9:** Neighbours reward you with a wearable plus 3 hairballs; in the King Raid, DEFEND stays red for half a second longer; the scratching paw art is fixed.
+- **v1.2.8:** The window sky has round, fluffy clouds, and the Explore hint reads "Tap or drag to walk".
+- **v1.2.7:** Explore's scratch bar holds each result for a second with HIT or MISS, SCRATCH is judged the moment you touch it, and there are new scratch and miss sounds.
+- **v1.2.6:** Smoother timing games; in Explore, tap a spot to walk there, things are easier to tap, downtown has one car at a time, and the neighbours' houses are furnished.
+- **v1.2.5:** A new secret in the Hermit's Cave (the Cave Goggles), stray cats on beds are visible, and Play and Explore burn a third less weight.
+- **v1.2.4:** Fullness and Fun drain on the clock with day and night, gift boxes come with gift-only outfits, Stats shows bars, the Sifting Box is removed, and BOX is renamed POO.

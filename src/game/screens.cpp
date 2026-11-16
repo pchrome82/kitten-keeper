@@ -183,7 +183,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.1", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.2", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -445,6 +445,7 @@ void Game::screenConfirm(Canvas& cv) {
       confirm_ = CF_NONE;
       if (sv.coins >= (uint32_t)SKIN_FEE && skinSel_ != pet.d.breed) {
         sv.coins -= SKIN_FEE;
+        if (isSecretBreed(pet.d.breed) && !isSecretBreed(skinSel_) && pet.d.age < AGE_ADULT) pet.d.age = AGE_ADULT;   // a secret breed is always grown up: leaving it, they stay grown up
         pet.d.breed = (uint8_t)skinSel_;
         sv.pad[0] = (uint8_t)skinSel_;
         toast("%s is now a %s!", pet.d.name, BREEDS[skinSel_].name);
@@ -1000,7 +1001,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.1", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.2", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
@@ -1406,13 +1407,13 @@ void Game::screenEnding(Canvas& cv) {
 void Game::updateDecor() { updateToys(); }
 
 
-struct Costume { uint8_t slot, id; const char* name; int price; };   // price 0 = reward only (Explore), -1 = only from a gift box
+struct Costume { uint8_t slot, id; const char* name; int price; };   // price 0 = reward only (Explore: quests, secrets, the King rematch), -1 = only from a gift box
 static const Costume COSTUMES[] = {   // (at most 7 per slot: the wardrobe shows "none" + 7)
   {0, HAT_TOP, "Top Hat", 30}, {0, HAT_PARTY, "Party Hat", 15}, {0, HAT_CROWN, "Crown", 0}, {0, HAT_WIZARD, "Wizard Hat", 0},
-  {0, HAT_SANTA, "Santa Hat", 0}, {0, HAT_FLOWER, "Flower Crown", 0}, {0, HAT_COWBOY, "Cowboy Hat", -1},
+  {0, HAT_SANTA, "Santa Hat", 20}, {0, HAT_FLOWER, "Flower Crown", 0}, {0, HAT_COWBOY, "Cowboy Hat", 0},
   {1, GL_SUN, "Sunglasses", 25}, {1, GL_HEART, "Heart Glasses", 25}, {1, GL_STAR, "Star Shades", -1}, {1, GL_MONOCLE, "Monocle", -1}, {1, GL_3D, "3-D Specs", -1}, {1, GL_GOGGLES, "Cave Goggles", 0},
-  {2, NK_BOW, "Bow Tie", 15}, {2, NK_SCARF, "Scarf", 20}, {2, NK_BELL, "Bell Collar", 10}, {2, NK_BANDANA, "Bandana", -1}, {2, NK_PEARLS, "Pearls", -1}, {2, NK_TIE, "Necktie", -1}, {2, NK_LACE, "Lace Collar", 0},
-  {3, BD_CAPE, "Hero Cape", 30}, {3, BD_SADDLE, "Hamster Saddle", 45}, {3, BD_WINGS, "Angel Wings", -1}};
+  {2, NK_BOW, "Bow Tie", 15}, {2, NK_SCARF, "Scarf", 20}, {2, NK_BELL, "Bell Collar", 10}, {2, NK_BANDANA, "Bandana", 0}, {2, NK_PEARLS, "Pearls", -1}, {2, NK_TIE, "Necktie", -1}, {2, NK_LACE, "Lace Collar", 0},
+  {3, BD_CAPE, "Hero Cape", 30}, {3, BD_SADDLE, "Hamster Saddle", 45}, {3, BD_WINGS, "Angel Wings", 0}, {3, BD_SHIRT, "T-Shirt", 20}, {3, BD_BFLY, "Butterfly Wings", 35}};
 static const char* WARD_TAB[4] = {"HAT", "EYES", "NECK", "BODY"};
 
 static uint8_t& ownOf(SaveData& s, int slot) { return slot == 0 ? s.ownHat : slot == 1 ? s.ownGl : slot == 2 ? s.ownNeck : s.ownCollar; }
