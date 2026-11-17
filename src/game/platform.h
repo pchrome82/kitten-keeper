@@ -26,8 +26,10 @@ class Platform {
   virtual uint32_t millis() = 0;
   // Battery: percent 0..100 and whether it's charging. Returns false if there's no battery info.
   virtual bool battery(int& percent, bool& charging) { (void)percent; (void)charging; return false; }
-  // True once per press of the device's PWR or BOOT button (screen on/off).
+  // True once per press of the device's PWR button (screen on/off).
   virtual bool powerButton() { return false; }
+  // True once per press of the device's BOOT button (sound off / back on).
+  virtual bool muteButton() { return false; }
   // Short-range link to other Kitten Keepers nearby, for Explore Together (ESP-NOW broadcast on the board:
   // no router, no pairing). Packets are small (<= 200 bytes) and may be lost; the game copes with that.
   // netOpen() false = no radio here (the PC simulator and the web page).

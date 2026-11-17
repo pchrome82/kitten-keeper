@@ -315,6 +315,7 @@ class Game {
   int endingKind_ = 0;
   float endT_ = 0;
   bool buttonOff_ = false;   // the side button turned the screen off: motion must not wake it
+  uint8_t mutedVol_ = 0;     // the volume before the BOOT button muted it (0 = not known: back on at 2)
   float ambT_ = 0; int ambPaid_ = 0, ambOwe_ = 0;   // the ambulance scene: time, hairballs paid, hairballs put on the tab
   char endMsg_[6][40];   // the ending story (3 lines; the ran-away one has 6)
   int shopPage_ = -1;    // -1 = the shop menu; 0 goods, 1 furniture, 2 boxes, 4 homes
@@ -514,6 +515,7 @@ class Game {
   void screenPour(Canvas& cv);
   void startLap(bool chosen = false);   // chosen: the player asked for it (Play menu / the Explore pop-up): +50 Energy at most
   bool napAsk_ = false;   // Play menu: the "needs 50 energy, nap?" pop-up is up
+  bool exploreAsk_ = false;   // Play menu: the "solo or together?" pop-up is up
   // A star game's Fun: 3 stars fill the bar in 3 games (34), 2 stars in 6 (17), 1 star in 9 (11.2); no stars 6.7..10 by how
   // close they got (10 to 15 games). A Playful cat gets a quarter more.
   float starFun(int stars, float perf) const { const float p = perf < 0 ? 0 : (perf > 1 ? 1 : perf); const float b = stars >= 3 ? 34.0f : (stars == 2 ? 17.0f : (stars == 1 ? 11.2f : 6.7f + 3.3f * p)); return b * (pet.trait == TRAIT_PLAYFUL ? 1.25f : 1.0f); }

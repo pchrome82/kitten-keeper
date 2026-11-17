@@ -136,7 +136,9 @@ You have 4 hearts. The King crouches before he leaps. When he leaps, the **DEFEN
 
 ## Explore Together
 
-Up to four devices can explore together over a direct radio link. No router needed. The match uses the classic map, the same for everyone, and no one can go inside a house during a match. The Together button works the same way: with less than 50 Energy, it shows the same Explore pop-up, with a CAT NAP button.
+To start a shared trip, press **PLAY**, then **EXPLORE**, then **EXPLORE TOGETHER** in the small pop-up. (**SOLO EXPLORE** starts a normal trip instead, and **BACK** closes the pop-up.) Together needs a second Kitten Keeper device nearby.
+
+Up to four devices can explore together over a direct radio link. No router needed. The match uses the classic map, the same for everyone, and no one can go inside a house during a match. With less than 50 Energy, EXPLORE shows the "Too tired to explore" pop-up with a CAT NAP button first, as it does for a solo trip.
 
 - **Squares.** Players race to claim squares of the map. The player with the most squares gets 3 hairballs. Anyone with at least one square gets 1 hairball.
 - **King Raid.** Everyone fights the Alley King together, and the team's hits all count. Win the raid and each player gets 3 hairballs. Anyone who landed a hit gets 1 hairball. Hairballs you throw in a raid do not come out of your own balance.

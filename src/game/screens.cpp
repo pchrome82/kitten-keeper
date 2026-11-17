@@ -187,7 +187,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.5", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.6", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -412,14 +412,26 @@ void Game::screenPlay(Canvas& cv) {
     if (button(cv, qx + qw - 72, qy + 62, 64, 24, "BACK", PURPLE)) { napAsk_ = false; guardTaps(); }
     return;
   }
-  int y = py + 18, bh = 15, gap = 2;
-  if (button(cv, px + 8, y, pw - 16, bh, "CHASE THE LASER", GREEN, ok)) { startLaser(); return; }
+  if (exploreAsk_) {   // EXPLORE pressed: on their own, or with other Kitten Keepers nearby
+    const int qx = 16, qy = 48, qw = 152, qh = 120;
+    cv.panel(qx, qy, qw, qh, PANEL, GOLD);
+    cv.textCenter(W / 2, qy + 8, "EXPLORE", GOLD);
+    if (button(cv, qx + 8, qy + 22, qw - 16, 22, "SOLO EXPLORE", rgb(60, 150, 90), ok)) { exploreAsk_ = false; startExplore(); return; }
+    if (button(cv, qx + 8, qy + 48, qw - 16, 22, "EXPLORE TOGETHER", rgb(70, 110, 200), ok)) { exploreAsk_ = false; startLink(); return; }   // (the radio comes on only once it's tapped)
+    cv.textCenter(W / 2, qy + 75, "Together needs a second", DIM);
+    cv.textCenter(W / 2, qy + 85, "Kitten Keeper nearby.", DIM);
+    if (button(cv, qx + (qw - 64) / 2, qy + qh - 24, 64, 18, "BACK", PURPLE)) { exploreAsk_ = false; guardTaps(); }
+    return;
+  }
+  // every game its own colour (Cat Nap keeps the Energy bar's blue)
+  int y = py + 18, bh = 17, gap = 2;
+  if (button(cv, px + 8, y, pw - 16, bh, "CHASE THE LASER", rgb(200, 70, 80), ok)) { startLaser(); return; }
   y += bh + gap;
-  if (button(cv, px + 8, y, pw - 16, bh, "SCRATCHING POST", BLUE, ok)) { startScratch(); return; }
+  if (button(cv, px + 8, y, pw - 16, bh, "SCRATCHING POST", rgb(40, 150, 150), ok)) { startScratch(); return; }
   y += bh + gap;
-  if (button(cv, px + 8, y, pw - 16, bh, "MAZE RUN", rgb(200, 110, 60), ok)) { startHeist(); return; }
+  if (button(cv, px + 8, y, pw - 16, bh, "MAZE RUN", rgb(210, 115, 50), ok)) { startHeist(); return; }
   y += bh + gap;
-  if (button(cv, px + 8, y, pw - 16, bh, "KNOCK IT OFF", rgb(170, 110, 200), ok)) { startKnock(); return; }
+  if (button(cv, px + 8, y, pw - 16, bh, "KNOCK IT OFF", rgb(205, 90, 150), ok)) { startKnock(); return; }
   y += bh + gap;
   if (button(cv, px + 8, y, pw - 16, bh, sv.boxType ? "MAGIC CAT" : "MAGIC CAT (NEEDS BOX)", rgb(120, 90, 200), ok && sv.boxType != BT_NONE)) { startMagic(); return; }
   y += bh + gap;
@@ -427,23 +439,10 @@ void Game::screenPlay(Canvas& cv) {
   const bool xcan = ok && exploreAllowed(&xwhy);
   const bool tiredAdult = ok && !xcan && pet.stage() >= STAGE_ADULT;   // grown up, just short of Energy: the button stays lit and explains
   const bool xok = xcan || tiredAdult;
-  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 140, 90), xok)) { if (tiredAdult) { napAsk_ = true; guardTaps(); return; } startExplore(); return; }
-  y += bh + gap;
-  {   // TOGETHER (up to 4 devices; the radio comes on only once it's tapped), with a Wi-Fi symbol after "requires"
-    static const char* TL = "TOGETHER - requires   ";
-    const int bx = px + 8, bw = pw - 16;
-    const bool hit = button(cv, bx, y, bw, bh, TL, rgb(70, 110, 200), xok);
-    const int tx = bx + (bw - Canvas::textWidth(TL)) / 2 + Canvas::textWidth("TOGETHER - requires ");
-    const int ty = y + (bh - 3 - 7) / 2;   // top of the label's letters
-    const Color wc = xok ? rgb(255, 255, 255) : rgb(140, 132, 160);
-    // Wi-Fi: two arcs over a dot, as tall as the letters
-    static const char* WIFI[7] = {"  #####  ", " #     # ", "#  ###  #", "  #   #  ", "         ", "    #    ", "         "};
-    for (int r = 0; r < 7; r++) for (int c = 0; c < 9; c++) if (WIFI[r][c] == '#') cv.set(tx + c, ty + r, wc);
-    if (hit) { if (tiredAdult) { napAsk_ = true; guardTaps(); return; } startLink(); return; }
-  }
+  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 150, 90), xok)) { (tiredAdult ? napAsk_ : exploreAsk_) = true; guardTaps(); return; }   // solo or together: asked next
   y += bh + gap;
   if (button(cv, px + 8, y, pw - 16, bh, "CAT NAP (+50 energy)", rgb(90, 130, 220), ok && pet.d.energy < 99.5f)) { startLap(true); return; }   // a rest whenever you like
-  if (button(cv, px + pw - 20, py + 2, 18, 14, "x", RED) || (in.tap && (in.py < py - 10 || in.py > py + ph + 4))) { napAsk_ = false; setScreen(S_HOME); }
+  if (button(cv, px + pw - 20, py + 2, 18, 14, "x", RED) || (in.tap && (in.py < py - 10 || in.py > py + ph + 4))) { napAsk_ = exploreAsk_ = false; setScreen(S_HOME); }
 }
 
 void Game::screenConfirm(Canvas& cv) {
@@ -1020,7 +1019,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.5", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.6", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }

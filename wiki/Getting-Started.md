@@ -46,12 +46,17 @@ The toolbar along the bottom has five buttons:
 | Button | What it does |
 |---|---|
 | **FEED** | Opens the feeding game. Tilt the device to pour kibble into the bowl. |
-| **PLAY** | Opens the games menu, which also has a CAT NAP button. See [[Mini-Games]]. |
+| **PLAY** | Opens the games menu, which also has EXPLORE and CAT NAP buttons. See [[Mini-Games]]. |
 | **POO** | Opens the litter box. Scoop up poops and drop them in the can. |
 | **SHOP** | Opens the shop. See [[Shop]]. |
 | **MENU** | Opens the menu: Stats, Change Breed, Alarm Clock, Journal, Settings and Help. |
 
 A red dot on a button means that need wants you now. The FEED dot shows when your cat is getting hungry, the PLAY dot when it is getting bored, and the POO dot when there is mess to clean.
+
+### The side buttons
+
+- **PWR** turns the screen off and on.
+- **BOOT** mutes and unmutes the sound. The screen shows "Sound off" or "Sound on", and the sound comes back at the volume you had before. If the screen is off, BOOT just lights it up. A ringing alarm cannot be muted with BOOT.
 
 ## 5. The menu
 
@@ -66,7 +71,7 @@ A red dot on a button means that need wants you now. The FEED dot shows when you
 
 ### Settings in brief
 
-- **Volume** and **Bright** sliders, and **Screen off** to set how long the screen stays on without a touch.
+- **Volume** and **Bright** sliders, and **Screen off** to set how long the screen stays on without a touch. To mute quickly, press BOOT (see The side buttons, above).
 - **SET CLOCK** sets the date and time.
 - **ROTATE** switches between ON (the tilt sensor turns the screen), OFF (always the normal way up) and FLIP (always upside down).
 - **TOUCH FIX** (on boards with a touch screen) calibrates touch from five taps. Use it if your taps land in the wrong place. The fix stays after a game reset.

@@ -497,7 +497,7 @@ void Game::toast(const char* fmt, ...) {
 void Game::setScreen(Screen s) {
   scr = s;
   guardTaps();
-  napAsk_ = false;   // (the Play menu's "too tired to explore" pop-up never outlives a screen change)
+  napAsk_ = exploreAsk_ = false;   // (the Play menu's "too tired to explore" pop-up never outlives a screen change)
   scrT_ = 0;
   scrSerial_++;
   if (s != S_HOME && s != S_FEED && s != S_PLAY && s != S_CONFIRM) memset(toasts_, 0, sizeof(toasts_));
@@ -738,7 +738,16 @@ bool Game::frame(Canvas& cv, bool touchDown, int physX, int physY) {
   scrT_ += dt; guardT_ += dt;
   idleSec += dt;
 
-  // PWR / BOOT button: screen off (the clock and their needs keep going) / back on
+  // BOOT button: sound off / back on at the volume it had (with the screen off it just lights the screen)
+  if (plat->muteButton()) {
+    if (!screenOn_) { wake(); swallow_ = true; }
+    else if (scr != S_ALARM_RING) {   // (a ringing alarm can't be muted away)
+      idleSec = 0;
+      if (sv.volume > 0) { mutedVol_ = sv.volume; sv.volume = 0; toast("Sound off"); }
+      else { sv.volume = mutedVol_ ? mutedVol_ : 2; toast("Sound on"); sound(SND_BLOOP); }
+    }
+  }
+  // PWR button: screen off (the clock and their needs keep going) / back on
   bool justOff = false;
   if (plat->powerButton()) {
     if (screenOn_ && scr != S_ALARM_RING) {

@@ -766,14 +766,14 @@ void Game::screenLink(Canvas& cv) {
     if (button(cv, 52, 186, 80, 26, "OK", GREEN)) { netStop(); setScreen(S_HOME); }
     return;
   }
-  // TOGETHER pressed: wait until another Kitten Keeper nearby answers (or there's a game to join)
+  // EXPLORE TOGETHER pressed: wait until another Kitten Keeper nearby answers (or there's a game to join)
   if (n.mode == NM_LOBBY && (!n.radio || (n.peerHeard > 3.0f && !n.nAds))) {
     const int px = 12, py = 62, pw = 160, ph = 96;
     cv.panel(px, py, pw, ph, rgb(44, 34, 70), rgb(130, 100, 170));
     cv.textCenter(W / 2, py + 8, "EXPLORE TOGETHER", rgb(250, 230, 150));
     cv.textCenter(W / 2, py + 30, "...waiting for nearby", rgb(236, 228, 250));
     cv.textCenter(W / 2, py + 41, "player(s) to respond...", rgb(236, 228, 250));
-    cv.textCenter(W / 2, py + 56, n.radio ? "They tap TOGETHER too" : "(no radio on this device)", rgb(160, 146, 190));
+    cv.textCenter(W / 2, py + 56, n.radio ? "They tap EXPLORE TOGETHER" : "(no radio on this device)", rgb(160, 146, 190));
     { const float t = anim_ * 3.0f;   // a little radar ping
       for (int k = 0; k < 3; k++) { const int r = (int)fmodf(t * 4 + k * 6, 18); if (r > 1) cv.ring(W / 2, py - 14, r, rgb(110 - r * 3, 90 - r * 2, 170 - r * 4)); }
       cv.disc(W / 2, py - 14, 2, rgb(250, 230, 150)); }

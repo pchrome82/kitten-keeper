@@ -14,6 +14,8 @@ Games tire your cat out. A good result cheers it up, and a win makes it a little
 | Knock It Off | Up to 2 pickups on the table | 17 |
 | Magic Cat | 1 to 3 (needs a box) | none |
 
+Each button in the Play menu has its own colour: Chase the Laser is red, Scratching Post teal, Maze Run orange, Knock It Off pink, Magic Cat violet, Explore green, and Cat Nap blue (the same blue as the Energy bar). EXPLORE opens a small pop-up where you pick SOLO EXPLORE or EXPLORE TOGETHER. See [[Explore]].
+
 Every game except Magic Cat pays Fun for the stars you earn. 3 stars gives +34 Fun (an empty Fun bar fills up in 3 games), 2 stars gives +17 (6 games), 1 star gives +11 (9 games), and no stars gives +7 to +10, depending on how close you got (10 to 15 games). A Playful cat gets a quarter more Fun from each game.
 
 ## Chase the Laser

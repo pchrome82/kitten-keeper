@@ -365,15 +365,23 @@ void EspPlatform::rtcSet(const cat::DateTime& dt) {
   Wire.endTransmission();
 }
 
-// PWR key (via the AXP2101's short-press flag) or the BOOT button (GPIO0, active low): one event per press.
-bool EspPlatform::powerButton() {
+// The BOOT button (GPIO0, active low): one event per press.
+static bool bootPressed() {
   static bool pinReady = false, bootWas = false;
-  static uint32_t lastPoll = 0;
   if (!pinReady) { pinMode(0, INPUT_PULLUP); pinReady = true; }
-  bool pressed = false;
   const bool boot = digitalRead(0) == LOW;
-  if (boot && !bootWas) pressed = true;
+  const bool pressed = boot && !bootWas;
   bootWas = boot;
+  return pressed;
+}
+
+// BOOT mutes / unmutes. (Without a power chip there's no PWR key: BOOT stays the screen button, see below.)
+bool EspPlatform::muteButton() { return haveAxp && bootPressed(); }
+
+// PWR key (via the AXP2101's short-press flag): one event per press. No power chip: the BOOT button instead.
+bool EspPlatform::powerButton() {
+  static uint32_t lastPoll = 0;
+  bool pressed = !haveAxp && bootPressed();
   if (haveAxp && ::millis() - lastPoll > 80) {   // don't hammer the I2C bus
     lastPoll = ::millis();
     uint8_t st = 0;

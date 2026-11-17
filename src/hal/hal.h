@@ -33,6 +33,7 @@ class EspPlatform : public cat::Platform {
   uint32_t randomSeed() override;
   bool battery(int& percent, bool& charging) override;
   bool powerButton() override;
+  bool muteButton() override;
   bool netOpen() override;
   void netClose() override;
   bool netSend(const void* data, int len) override;
