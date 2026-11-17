@@ -2,6 +2,7 @@
 
 Newest first. One line per version.
 
+- **v1.3.3:** The angel and butterfly wings are a little smaller (85% of their v1.3.2 size) and sit properly on the cat's back from the side and from behind; the T-Shirt is now sky blue with a white collar and a yellow star.
 - **v1.3.2:** New T-Shirt and Butterfly Wings in the Wardrobe; bigger angel wings and a new wizard hat; the Santa Hat is sold in the shop; Alley King rematches award the Cowboy Hat, Bandana or Angel Wings (then 20 hairballs); a secret breed changed to a regular one stays grown up.
 - **v1.3.1:** Boxes last a quarter as long as before (Tissue 30 min, Shoebox 2 h, Cardboard 6 h, Crate still forever) and can no longer be sold back; SKINS is now CHANGE BREED; the Homes button is teal; the lifetime hairball count is gone from Stats.
 - **v1.3.0:** The shop is a menu of pages (Wardrobe, Goods, Furniture, Boxes, Homes), and toys are found in Explore instead of sold.

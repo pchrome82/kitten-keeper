@@ -101,9 +101,9 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
   auto wing = [&](int wx, int wy, int dir) {   // one big angel wing: a fan of long, rounded feathers (tall at the front, fanning out and down)
     const Color wh = rgb(252, 252, 255), sh = rgb(178, 204, 246), gl = rgb(255, 238, 170);
     static const float ANG[6] = {98, 82, 65, 48, 31, 14}, LEN[6] = {0.8f, 1.0f, 1.14f, 1.16f, 1.06f, 0.86f};   // degrees above level; length (x the head's half width)
-    const float r0 = u(0.17f) + 0.5f;
+    const float r0 = (u(0.17f) + 0.5f) * 0.92f;   // (0.92: 85% of the old area)
     float tx[6], ty[6];
-    for (int i = 0; i < 6; i++) { const float a = ANG[i] * 0.0174533f, L = LEN[i] * (float)k * 1.05f; tx[i] = wx + dir * cosf(a) * L; ty[i] = wy - sinf(a) * L; }
+    for (int i = 0; i < 6; i++) { const float a = ANG[i] * 0.0174533f, L = LEN[i] * (float)k * 1.05f * 0.92f; tx[i] = wx + dir * cosf(a) * L; ty[i] = wy - sinf(a) * L; }
     auto capsule = [&](int i, float grow, Color c) {   // a feather: a row of discs from the shoulder out to the tip, tapering a little
       const float dx = tx[i] - wx, dy = ty[i] - wy; const int n = (int)(sqrtf(dx * dx + dy * dy)) + 1;
       for (int s = 0; s <= n; s++) { const float f = (float)s / n; cv.disc((int)(wx + dx * f + 0.5f), (int)(wy + dy * f + 0.5f), (int)(r0 * (1.0f - 0.22f * f) + grow + 0.5f), c); }
@@ -116,8 +116,9 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
   };
   auto bwing = [&](int wx, int wy, int dir) {   // one butterfly wing: a big upper lobe and a smaller lower lobe, with spots
     const Color pk = rgb(250, 130, 190), pkD = rgb(214, 80, 160), vi = rgb(150, 100, 230), wh = rgb(255, 240, 250);
-    const int ux = wx + dir * u(0.5f), uy = wy - u(0.42f), lx = wx + dir * u(0.36f), ly = wy + u(0.2f);
-    const int urx = u(0.5f) + 1, ury = u(0.4f) + 1, lrx = u(0.34f) + 1, lry = u(0.28f) + 1;
+    auto s = [&](float f) { return (int)(k * f * 0.92f + 0.5f); };   // (0.92: 85% of the old area)
+    const int ux = wx + dir * s(0.5f), uy = wy - s(0.42f), lx = wx + dir * s(0.36f), ly = wy + s(0.2f);
+    const int urx = s(0.5f) + 1, ury = s(0.4f) + 1, lrx = s(0.34f) + 1, lry = s(0.28f) + 1;
     cv.ellipse(ux, uy, urx + 1, ury + 1, ol); cv.ellipse(lx, ly, lrx + 1, lry + 1, ol);
     cv.ellipse(ux, uy, urx, ury, pk); cv.ellipse(lx, ly, lrx, lry, vi);
     cv.ellipse(ux + dir * urx / 4, uy - ury / 5, urx * 2 / 3, ury * 2 / 3, pkD);
@@ -153,19 +154,24 @@ static void drawSpriteCostume(Canvas& cv, const CatDraw& d, const int b[4], bool
   } else if (d.body == BD_WINGS || d.body == BD_BFLY) {   // big angel wings (or butterfly wings), with a gentle flap
     const int flap = (int)(sinf(d.t * 5) * u(0.05f));
     auto wg = [&](int x, int y, int dr) { if (d.body == BD_WINGS) wing(x, y, dr); else bwing(x, y, dr); };
-    if (back) { wg(hx - u(0.42f), neckY + u(0.02f) + flap, -1); wg(hx + u(0.42f), neckY + u(0.02f) + flap, 1); }   // on their back, in full view
+    if (back) { const int by = b[1] + (int)(h * 0.62f); wg((b[0] + b[2]) / 2 - u(0.22f), by + flap, -1); wg((b[0] + b[2]) / 2 + u(0.22f), by + flap, 1); }   // on the middle of the back, below the head
     else if (!side) { wg(hx - u(0.42f), neckY - u(0.1f) + flap, -1); wg(hx + u(0.42f), neckY - u(0.1f) + flap, 1); }   // spread out behind the shoulders
-    else wg((b[0] + b[2]) / 2 + (L ? 1 : -1) * u(0.2f), b[1] + (int)(h * 0.3f) + flap, L ? 1 : -1);   // side on: one wing over the back
-  } else if (d.body == BD_SHIRT) {   // a red tee with a white stripe, over the chest (or the back)
-    const Color tee = rgb(228, 76, 92), teeD = rgb(168, 48, 70), st = rgb(250, 246, 250);
+    else wg((b[0] + b[2]) / 2 + (L ? 1 : -1) * (int)(w * 0.06f), b[3] - (int)(h * 0.5f) + flap, L ? 1 : -1);   // side on: one wing rooted on the back, behind the shoulders
+  } else if (d.body == BD_SHIRT) {   // a sky-blue tee with a white collar and a little yellow star
+    const Color tee = rgb(80, 150, 230), teeD = rgb(46, 100, 180), wh = rgb(250, 248, 255), star = rgb(255, 220, 80);
     int sx, sy, rx, ry;
-    if (side) { rx = (int)(w * 0.26f) + 1; ry = rx * 9 / 20 + 1; sx = (b[0] + b[2]) / 2 + (L ? -1 : 1) * (int)(w * 0.08f); sy = b[3] - ry - (int)(h * 0.22f); }
-    else if (back) { sx = (b[0] + b[2]) / 2; sy = b[1] + (int)(h * 0.66f); rx = u(0.44f); ry = u(0.3f); }
+    if (side) { rx = (int)(w * 0.24f) + 1; ry = rx * 9 / 20 + 1; sx = (b[0] + b[2]) / 2 + (L ? -1 : 1) * (int)(w * 0.06f); sy = b[3] - ry - (int)(h * 0.22f); }
+    else if (back) { sx = (b[0] + b[2]) / 2; sy = b[3] - (int)(h * 0.3f); rx = u(0.42f); ry = u(0.26f) + 1; }
     else { sx = hx; sy = neckY + u(0.16f); rx = u(0.4f); ry = u(0.2f) + 1; }
-    if (!side) { cv.disc(sx - rx, sy - ry / 2, u(0.12f) + 2, ol); cv.disc(sx + rx, sy - ry / 2, u(0.12f) + 2, ol); cv.disc(sx - rx, sy - ry / 2, u(0.12f) + 1, teeD); cv.disc(sx + rx, sy - ry / 2, u(0.12f) + 1, teeD); }   // sleeves
+    const int sl = u(0.12f) + 1;   // sleeves: both from the front and back, the front leg's one from the side
+    if (!side) { cv.disc(sx - rx, sy - ry / 2, sl + 1, ol); cv.disc(sx + rx, sy - ry / 2, sl + 1, ol); cv.disc(sx - rx, sy - ry / 2, sl, teeD); cv.disc(sx + rx, sy - ry / 2, sl, teeD); }
+    else { const int fx = sx + (L ? -1 : 1) * (rx - 1); cv.disc(fx, sy, sl + 1, ol); cv.disc(fx, sy, sl, teeD); }
     cv.ellipse(sx, sy, rx + 1, ry + 1, ol); cv.ellipse(sx, sy, rx, ry, tee);
-    cv.hline(sx - rx + 1, sy, rx * 2 - 1, st); cv.hline(sx - rx + 1, sy + 1, rx * 2 - 1, st);   // the stripe
-    if (!side && !back) cv.tri(sx - u(0.1f), sy - ry, sx + u(0.1f), sy - ry, sx, sy - ry + u(0.12f) + 1, ol);   // the collar
+    cv.hline(sx - rx * 2 / 3, sy + ry - 1, rx * 4 / 3, teeD);   // the hem
+    if (!side && !back) {
+      cv.ellipse(sx, sy - ry, u(0.14f) + 1, u(0.06f) + 1, wh);   // a white crew collar
+      cv.set(sx, sy + 1, star); cv.set(sx - 1, sy + 1, star); cv.set(sx + 1, sy + 1, star); cv.set(sx, sy, star); cv.set(sx, sy + 2, star);   // the star print
+    }
 
   } else if (d.body == BD_SADDLE) {
     // saddle on them back + a very chubby-cheeked hamster rider
