@@ -953,19 +953,20 @@ void Game::drawHome(Canvas& cv, bool interactive) {
   // the tree stands at the back, against the wall: left of the middle, its trunk and step just right of the mouse hole
   if (hasItem(ITEM_TREEBED)) drawItem(cv, ITEM_TREEBED, TREE_X, TREE_Y); else if (hasItem(ITEM_TREE)) drawItem(cv, ITEM_TREE, TREE_X, TREE_Y);
   if (hasItem(ITEM_BED)) drawItem(cv, ITEM_BED, BED_X, 172);
-  const bool lchair = hasItem(ITEM_LCHAIR);   // the comfy one replaces the ripped one; it stands front left, over the litter box's corner
+  const bool lchair = hasItem(ITEM_LCHAIR);   // the comfy one replaces the ripped one; it stands against the back wall, left, its back to the wall
   if (!lchair && hasItem(ITEM_RCHAIR)) drawItem(cv, ITEM_RCHAIR, CHAIR_X, CHAIR_Y);
+  if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y);   // (against the wall, so everything on the floor is in front of it)
   if (hasItem(ITEM_TUNNEL)) drawItem(cv, ITEM_TUNNEL, TUNNEL_X, TUNNEL_Y);   // mid screen, on the floor in front of the tree's foot
   if (pet.d.breed == BR_HAMSTER) drawWheel(cv, false);   // their wheel comes along to every apartment (the box, nearer, goes in front of it)
   bool inBox = sv.boxType && a_.act == A_SLEEP && fabsf(a_.x - BOX2_X) < 4 && !hasItem(ITEM_BED) && !hasItem(ITEM_TREEBED);
   if (sv.boxType) drawBoxProp(cv, sv.boxType, BOX2_X, 180, inBox ? 1 : 0);
-  if (!catInBox) { drawBox(cv, BOX_X, 160, boxDrops); if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y); }
+  if (!catInBox) drawBox(cv, BOX_X, 160, boxDrops);
   drawSeasonalDecor(cv);
   drawGiftBox(cv);
   drawActor(cv);
   drawMouse(cv);
   if (inBox) drawBoxProp(cv, sv.boxType, BOX2_X, 180, 2);
-  if (catInBox) { drawBox(cv, BOX_X, 160, boxDrops); if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y); }   // (the chair is nearer than the box)
+  if (catInBox) drawBox(cv, BOX_X, 160, boxDrops);
 
   // night: the room cache is already dark; tint what is drawn on top (cats, props) to match
   float n = nightness(hour, minute);

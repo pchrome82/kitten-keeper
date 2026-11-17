@@ -1354,7 +1354,7 @@ void Game::screenExplore(Canvas& cv) {
             if (m.aux <= 0) {
               m.phase = 0; m.x = OFF; m.y = TOP;
               m.vx = -(44.0f + pet.rndf() * 24.0f);
-              m.aux = OX + (2 + (int)(pet.rnd() % 3)) * TS + 8.0f;   // where it turns: west of the crosswalk
+              m.aux = OX + (3 + (int)(pet.rnd() % 2)) * TS + 8.0f;   // where it turns: west of the crosswalk, far enough in that the whole car (22 px wide) stays on the road, off the sidewalk
               m.t = (float)(pet.rnd() % 4);                             // its colour
             }
             break;

@@ -2,6 +2,7 @@
 
 Newest first. One line per version.
 
+- **v1.3.7:** Downtown cars make their U-turn in the road instead of on the sidewalk; the Luxury Chair stands against the back wall in the corner of the home room, with your cat in front of it.
 - **v1.3.6:** The Play menu's TOGETHER button is gone: EXPLORE opens a pop-up with SOLO EXPLORE and EXPLORE TOGETHER; each Play menu button has its own colour; BOOT mutes and unmutes the sound (PWR still turns the screen off and on).
 - **v1.3.5:** The cat can chase the house mouse while eating; a quick double tap no longer presses a button on the next screen; holding + or - no longer adds an extra step on release; hairballs, mess and the gift box on the floor are spaced out so they are easier to tap.
 - **v1.3.4:** Mini-game Fun now follows your stars (3 stars fill the bar in 3 games, 2 in 6, 1 in 9, none in 10 to 15); a Cat Nap button in the Play menu (+50 Energy at most); a tired adult's Explore button explains what it needs and offers a nap; Catnip costs 3 hairballs.
