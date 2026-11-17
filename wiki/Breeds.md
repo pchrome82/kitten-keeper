@@ -39,7 +39,7 @@ Every cat gets a random personality when it moves in. It nudges the cat's needs 
 |---|---|
 | **Lazy** | Naps a lot. Tires and gets bored more slowly. Moves a little more slowly in games. |
 | **Curious** | Loves the window. Gets bored faster. |
-| **Playful** | Games are extra fun (more Fun from each game). Tires a little faster. |
+| **Playful** | Games are extra fun (a quarter more Fun from each game). Tires a little faster. |
 | **Foodie** | Always hungry for more. Its Fullness drops faster. |
 | **Cuddly** | Petting means the world. Gets more Fun from petting, and minds being ignored more. |
 | **Brave** | Hits a bit harder in fights. |

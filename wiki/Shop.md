@@ -4,13 +4,13 @@ Hairballs are the money in Kitten Keeper. Press **SHOP** on the home screen to o
 
 **WARDROBE**, **GOODS**, **FURNITURE**, **BOXES** and **HOMES**.
 
-Each page has a **BACK** button that returns you to the menu. If you open the Wardrobe from the shop, BACK takes you to the shop. A price button turns grey if you cannot afford the item.
+Each page has a **BACK** button that returns you to the menu. If you open the Wardrobe from the shop, BACK takes you to the shop. A price button turns grey if you cannot afford the item. Tapping a grey button does nothing, and the tap never passes on to the button next to it.
 
 ## Goods
 
 | Item | Price | What it does |
 |---|---|---|
-| **Catnip Treat** | 6 | Gives 40 Energy and 10 Fun. Your cat goes a bit wild and runs around. You cannot use it while your cat sleeps, or when its Energy is already above 80. |
+| **Catnip Treat** | 3 | Gives 40 Energy and 10 Fun. Your cat goes a bit wild and runs around. You cannot use it while your cat sleeps, or when its Energy is already above 80. |
 | **Vet Visit** | 10 | Gives 45 Health and makes your cat a little less grumpy. |
 | **Auto Litter-Bot** | 120 | Removes one poop from the litter box about every minute, so you do not have to scoop by hand. It shows OWNED once bought. |
 

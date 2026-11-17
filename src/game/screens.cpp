@@ -55,7 +55,8 @@ bool Game::button(Canvas& cv, int x, int y, int w, int h, const char* label, Col
   Color tc = enabled ? textCol : rgb(140, 132, 160);
   if (enabled) cv.text(x + (w - tw) / 2 + 1, ty + 1, label, shade(fill, 40));
   cv.text(x + (w - tw) / 2, ty, label, tc);
-  if (enabled && tapIn(x, y, w, h)) { sound(strcmp(label, "BACK") == 0 ? SND_BACK : SND_TAP); return true; }
+  if (!enabled) { (void)tapIn(x, y, w, h); return false; }   // a greyed-out button still owns its own area: a tap on it must not go to the button next to it
+  if (tapIn(x, y, w, h)) { sound(strcmp(label, "BACK") == 0 ? SND_BACK : SND_TAP); return true; }
   return false;
 }
 
@@ -183,7 +184,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.3", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.4", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -397,7 +398,18 @@ void Game::screenPlay(Canvas& cv) {
   else if (pet.d.hunting) why = "Out hunting...";
   else if (pet.d.energy < 15) { toast("Too tired to play... cat nap time!"); startLap(); return; }   // too tired: a nap instead
   bool ok = why == nullptr;
-  int y = py + 20, bh = 17, gap = 2;
+  if (napAsk_) {   // Explore needs 50 Energy: offer the nap that gets them there
+    const int qx = 16, qy = 62, qw = 152, qh = 92;
+    cv.panel(qx, qy, qw, qh, PANEL, GOLD);
+    cv.textCenter(W / 2, qy + 8, "Too tired to explore", GOLD);
+    cv.textCenter(W / 2, qy + 22, "Explore needs 50 energy.", TXT);
+    cv.textCenter(W / 2, qy + 33, "A Cat Nap gives +50:", TXT);
+    cv.textCenter(W / 2, qy + 44, "hold the device still.", DIM);
+    if (button(cv, qx + 8, qy + 62, 64, 24, "CAT NAP", BLUE, ok)) { napAsk_ = false; startLap(true); return; }
+    if (button(cv, qx + qw - 72, qy + 62, 64, 24, "BACK", PURPLE)) napAsk_ = false;
+    return;
+  }
+  int y = py + 18, bh = 15, gap = 2;
   if (button(cv, px + 8, y, pw - 16, bh, "CHASE THE LASER", GREEN, ok)) { startLaser(); return; }
   y += bh + gap;
   if (button(cv, px + 8, y, pw - 16, bh, "SCRATCHING POST", BLUE, ok)) { startScratch(); return; }
@@ -409,8 +421,10 @@ void Game::screenPlay(Canvas& cv) {
   if (button(cv, px + 8, y, pw - 16, bh, sv.boxType ? "MAGIC CAT" : "MAGIC CAT (NEEDS BOX)", rgb(120, 90, 200), ok && sv.boxType != BT_NONE)) { startMagic(); return; }
   y += bh + gap;
   const char* xwhy = nullptr;
-  bool xok = ok && exploreAllowed(&xwhy);
-  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 140, 90), xok)) { startExplore(); return; }
+  const bool xcan = ok && exploreAllowed(&xwhy);
+  const bool tiredAdult = ok && !xcan && pet.stage() >= STAGE_ADULT;   // grown up, just short of Energy: the button stays lit and explains
+  const bool xok = xcan || tiredAdult;
+  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 140, 90), xok)) { if (tiredAdult) { napAsk_ = true; return; } startExplore(); return; }
   y += bh + gap;
   {   // TOGETHER (up to 4 devices; the radio comes on only once it's tapped), with a Wi-Fi symbol after "requires"
     static const char* TL = "TOGETHER - requires   ";
@@ -422,9 +436,11 @@ void Game::screenPlay(Canvas& cv) {
     // Wi-Fi: two arcs over a dot, as tall as the letters
     static const char* WIFI[7] = {"  #####  ", " #     # ", "#  ###  #", "  #   #  ", "         ", "    #    ", "         "};
     for (int r = 0; r < 7; r++) for (int c = 0; c < 9; c++) if (WIFI[r][c] == '#') cv.set(tx + c, ty + r, wc);
-    if (hit) { startLink(); return; }
+    if (hit) { if (tiredAdult) { napAsk_ = true; return; } startLink(); return; }
   }
-  if (button(cv, px + pw - 20, py + 2, 18, 14, "x", RED) || (in.tap && (in.py < py - 10 || in.py > py + ph + 4))) setScreen(S_HOME);
+  y += bh + gap;
+  if (button(cv, px + 8, y, pw - 16, bh, "CAT NAP (+50 energy)", rgb(90, 130, 220), ok && pet.d.energy < 99.5f)) { startLap(true); return; }   // a rest whenever you like
+  if (button(cv, px + pw - 20, py + 2, 18, 14, "x", RED) || (in.tap && (in.py < py - 10 || in.py > py + ph + 4))) { napAsk_ = false; setScreen(S_HOME); }
 }
 
 void Game::screenConfirm(Canvas& cv) {
@@ -557,7 +573,7 @@ void Game::screenShop(Canvas& cv) {
   struct Row { const char* name; const char* desc; int price; int icon; bool avail; };
   int tier = sv.litterTier;
   Row rows[3] = {   // (treats and diet kibble are gone: pouring kibble is how a cat gets chonky or lean)
-    {"Catnip Treat", "+40 energy, zoom!", 6, 4, true},
+    {"Catnip Treat", "+40 energy, zoom!", 3, 4, true},
     {"Vet Visit", "+45 health", 10, 2, true},
     {"Auto Litter-Bot", "Cleans each visit", 120, 3, tier < 2}};   // (the Sifting Box, tier 1, is no longer sold: a save that has one keeps it)
   for (int i = 0; i < 3; i++) {
@@ -1001,7 +1017,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.3", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.4", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }

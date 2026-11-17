@@ -5,7 +5,7 @@ Explore is the big outdoor adventure. Once your cat is an adult, take it on a tr
 ## Before you set off
 
 - **Adult only.** Explore unlocks when your cat grows up. See [[Care and Needs]].
-- **Energy.** You need 50 Energy to set off. Each trip costs 50 Energy when you get home.
+- **Energy.** You need 50 Energy to set off. Each trip costs 50 Energy when you get home. If your cat has less than 50 Energy, the Explore button is not greyed out: tapping it shows a pop-up explaining that Explore needs 50 Energy, with a CAT NAP button to nap first.
 - **Each new screen costs energy.** Walking onto a new screen costs 10 Energy. The Trail Paws (from the first wild cat you beat with a hairball) bring that down to 8, and the Cave Crystal takes off another 4 (see the table below).
 
 | Items you have | Energy per new screen |
@@ -136,7 +136,7 @@ You have 4 hearts. The King crouches before he leaps. When he leaps, the **DEFEN
 
 ## Explore Together
 
-Up to four devices can explore together over a direct radio link. No router needed. The match uses the classic map, the same for everyone, and no one can go inside a house during a match.
+Up to four devices can explore together over a direct radio link. No router needed. The match uses the classic map, the same for everyone, and no one can go inside a house during a match. The Together button works the same way: with less than 50 Energy, it shows the same Explore pop-up, with a CAT NAP button.
 
 - **Squares.** Players race to claim squares of the map. The player with the most squares gets 3 hairballs. Anyone with at least one square gets 1 hairball.
 - **King Raid.** Everyone fights the Alley King together, and the team's hits all count. Win the raid and each player gets 3 hairballs. Anyone who landed a hit gets 1 hairball. Hairballs you throw in a raid do not come out of your own balance.

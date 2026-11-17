@@ -135,7 +135,7 @@ constexpr int KIB_N = 140;
 struct PourGame { float p, spill, t, angle, levelT, flash; bool started, done; int verdict; float bx, by, bz, calib, lean, pourT, zAmt[4];   // b* = resting gravity (how the player holds it)
                   Kibble kib[KIB_N]; float bowlAcc, floorAcc, sndBowl, sndFloor; uint32_t seed;
                   float weightChange; };   // how much heavier (+) / lighter (-) this meal made them
-struct LapGame { float t, streak, steady, shown, stun, doneT, e0, gain; bool begun, done, jolting; float bx, by, bz, calib, dev; int interrupts; };   // begun = intro dismissed, done = result showing; stun = startled after a bump; gain = energy earned; b* = resting pose, dev = degrees away from it   // b* = resting pose, dev = degrees away from it
+struct LapGame { float t, streak, steady, shown, stun, doneT, e0, gain; bool begun, done, jolting; float bx, by, bz, calib, dev; int interrupts; float cap; };   // cap: Energy stops here (a nap you chose adds at most 50; a worn-out cat naps to full)   // begun = intro dismissed, done = result showing; stun = startled after a bump; gain = energy earned; b* = resting pose, dev = degrees away from it   // b* = resting pose, dev = degrees away from it
 // Knock It Off: the cat strolls along the table to the thing it is about to shove; tap that item in time to save it.
 struct KnockItem { float x, xo, fall, vy, vx; uint8_t type; uint8_t st; };   // st: 0 on the table, 1 falling, 2 smashed on the floor
 
@@ -507,7 +507,11 @@ class Game {
   // ---- activities.cpp ----
   void startPour();
   void screenPour(Canvas& cv);
-  void startLap();
+  void startLap(bool chosen = false);   // chosen: the player asked for it (Play menu / the Explore pop-up): +50 Energy at most
+  bool napAsk_ = false;   // Play menu: the "needs 50 energy, nap?" pop-up is up
+  // A star game's Fun: 3 stars fill the bar in 3 games (34), 2 stars in 6 (17), 1 star in 9 (11.2); no stars 6.7..10 by how
+  // close they got (10 to 15 games). A Playful cat gets a quarter more.
+  float starFun(int stars, float perf) const { const float p = perf < 0 ? 0 : (perf > 1 ? 1 : perf); const float b = stars >= 3 ? 34.0f : (stars == 2 ? 17.0f : (stars == 1 ? 11.2f : 6.7f + 3.3f * p)); return b * (pet.trait == TRAIT_PLAYFUL ? 1.25f : 1.0f); }
   void pourLaunch(float mx, float my, bool toBowl, int zone);
   void pourUpdateKibble();
   void screenLap(Canvas& cv);

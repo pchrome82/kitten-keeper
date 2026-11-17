@@ -396,9 +396,10 @@ void Game::screenPour(Canvas& cv) {
 static const float LAP_TIME = 30.0f;     // the nap lasts up to 30 s
 static const int LAP_BUMPS = 3;          // this many bumps and they wake up (the nap is over)
 
-void Game::startLap() {
+void Game::startLap(bool chosen) {
   memset(&lap_, 0, sizeof(lap_));
   lap_.e0 = pet.d.energy;
+  lap_.cap = chosen ? clampf(pet.d.energy + 50.0f, 0, 100) : 100.0f;   // a nap you chose: +50 at most
   setScreen(S_LAP);
 }
 
@@ -444,7 +445,7 @@ void Game::screenLap(Canvas& cv) {
     if (g.stun <= 0) {
       const float mult = 1.0f + clampf(g.streak, 0, 20) / 20.0f;
       const float before = pet.d.energy;
-      pet.d.energy = clampf(pet.d.energy + dt * 1.8f * mult, 0, 100);
+      pet.d.energy = clampf(pet.d.energy + dt * 1.8f * mult, 0, g.cap > before ? g.cap : before);
       g.gain += pet.d.energy - before;
       pet.d.fun = clampf(pet.d.fun + dt * 0.12f, 0, 100);
       pet.d.resent = clampf(pet.d.resent - dt * 0.03f, 0, 100);
@@ -463,7 +464,7 @@ void Game::screenLap(Canvas& cv) {
   if (g.shown > 0) g.shown -= dt;
   updateParticles(dt);
   // the nap ends: time up, too many bumps, or all rested
-  if (live && g.calib >= CALIB && (g.steady >= LAP_TIME || g.interrupts >= LAP_BUMPS || pet.d.energy >= 99.99f)) {
+  if (live && g.calib >= CALIB && (g.steady >= LAP_TIME || g.interrupts >= LAP_BUMPS || pet.d.energy >= g.cap - 0.01f)) {
     g.done = true; g.doneT = 0;
     pet.napping = false; pet.sleeping = false;
     if (g.gain >= 10.0f) recordMilestone(MS_LAP);
@@ -511,10 +512,10 @@ void Game::screenLap(Canvas& cv) {
 
   if (!g.begun) {   // what this is
     cv.panel(8, 62, 168, 100, rgb(30, 22, 46), rgb(250, 230, 150));
-    cv.textCenter(W / 2, 70, "Out of energy!", rgb(255, 255, 255));
+    cv.textCenter(W / 2, 70, g.cap < 99.9f || g.e0 >= 15 ? "Cat Nap" : "Out of energy!", rgb(255, 255, 255));
     cv.textCenter(W / 2, 84, "Rest without moving to", rgb(220, 210, 240));
     cv.textCenter(W / 2, 94, "gain some. Keep the ball", rgb(220, 210, 240));
-    cv.textCenter(W / 2, 104, "in the middle for 30 s.", rgb(220, 210, 240));
+    cv.textCenter(W / 2, 104, g.e0 >= 15 ? "in the middle (+50 max)." : "in the middle for 30 s.", rgb(220, 210, 240));
     snprintf(b, sizeof(b), "%d bumps and they wake", LAP_BUMPS);
     cv.textCenter(W / 2, 118, b, rgb(255, 236, 160));
     cv.textCenter(W / 2, 128, "up (less rest, no loss).", rgb(255, 236, 160));
@@ -525,7 +526,7 @@ void Game::screenLap(Canvas& cv) {
   }
   if (g.done) {   // how it went: touch anywhere to go home
     cv.panel(14, 66, 156, 92, C_PANEL, C_BORDER);
-    cv.textCenter(W / 2, 74, g.interrupts >= LAP_BUMPS ? "Woke up early" : (pet.d.energy >= 99.99f ? "Fully rested!" : "Nap time over"), C_GOLD);
+    cv.textCenter(W / 2, 74, g.interrupts >= LAP_BUMPS ? "Woke up early" : (pet.d.energy >= 99.99f ? "Fully rested!" : (pet.d.energy >= g.cap - 0.01f ? "Rested! (+50)" : "Nap time over")), C_GOLD);
     snprintf(b, sizeof(b), "Energy +%d", (int)(g.gain + 0.5f));
     cv.textCenter(W / 2, 90, b, rgb(140, 240, 160));
     snprintf(b, sizeof(b), "Energy now %d", (int)(pet.d.energy + 0.5f));
@@ -759,7 +760,7 @@ void Game::screenKnock(Canvas& cv) {
     snprintf(b, sizeof(b), "Saved %d, %d on the table", g.saved, left);
     cv.textCenter(W / 2, 92, b, C_TXT);
     if (button(cv, 62, 104, 60, 22, "OK", C_GREEN)) {
-      // stars like the other games: 1 star +17 fun, 2 stars +25, 3 stars +33 (and the hairballs you picked up)
+      // stars like the other games: 1 star +11 fun, 2 stars +17, 3 stars +34 (and the hairballs you picked up)
       const int stars = (left >= 4 && g.saved >= 6) ? 3 : ((left >= 2 && g.saved >= 4) ? 2 : (g.saved >= 2 ? 1 : 0));
       finishGame(4, g.saved, 0, stars, g.hairballs);
     }

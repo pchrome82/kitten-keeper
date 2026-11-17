@@ -8,7 +8,7 @@ Your cat has a few needs that you look after every day. Keep them up and your ca
 |---|---|---|---|
 | **Fullness** | Top bar (fish) and Stats | How fed your cat is. Empty means hungry. | Feed it with FEED. |
 | **Fun** | Top bar (ball) and Stats | How entertained it is. | Play games, pet it, and use toys and furniture. |
-| **Energy** | Top bar (moon) and Stats | How rested it is. Low energy means a nap. | Let it sleep, nap in a bed or box, or have a catnip treat from the shop. |
+| **Energy** | Top bar (moon) and Stats | How rested it is. Low energy means a nap. | Let it sleep, nap in a bed or box, press CAT NAP in the PLAY menu, or have a catnip treat from the shop. |
 | **Health** | Top bar (heart) and Stats | How well your cat is. At 0 it goes to the vet. | Keep it fed, clean and not too heavy. Vet visits help. |
 | **Weight** | Stats | How heavy it is. Ideal is 35 as a kitten and 50 as an adult. | Feed carefully and play. See the Weight section below. |
 | **Grumpy** | Stats | How fed up it is with you. At 100 it runs away. | Keep the meters up, clean the mess, and pet it. |

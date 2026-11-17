@@ -46,7 +46,7 @@ The toolbar along the bottom has five buttons:
 | Button | What it does |
 |---|---|
 | **FEED** | Opens the feeding game. Tilt the device to pour kibble into the bowl. |
-| **PLAY** | Opens the games menu. See [[Mini-Games]]. |
+| **PLAY** | Opens the games menu, which also has a CAT NAP button. See [[Mini-Games]]. |
 | **POO** | Opens the litter box. Scoop up poops and drop them in the can. |
 | **SHOP** | Opens the shop. See [[Shop]]. |
 | **MENU** | Opens the menu: Stats, Change Breed, Alarm Clock, Journal, Settings and Help. |

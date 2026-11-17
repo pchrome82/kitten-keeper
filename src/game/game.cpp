@@ -490,6 +490,7 @@ void Game::toast(const char* fmt, ...) {
 
 void Game::setScreen(Screen s) {
   scr = s;
+  napAsk_ = false;   // (the Play menu's "too tired to explore" pop-up never outlives a screen change)
   scrT_ = 0;
   scrSerial_++;
   if (s != S_HOME && s != S_FEED && s != S_PLAY && s != S_CONFIRM) memset(toasts_, 0, sizeof(toasts_));

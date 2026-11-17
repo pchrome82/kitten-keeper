@@ -244,7 +244,7 @@ void Game::screenMagic(Canvas& cv) {
     }
     snprintf(b, sizeof(b), "Prize: %d hairball%s", reward, reward == 1 ? "" : "s");
     cv.textCenter(W / 2, 114, b, rgb(255, 240, 160));
-    const int fun = (int)gfun((float)(reward >= 3 ? 100 : (reward == 2 ? 75 : (reward == 1 ? 50 : 0))));   // same star rule as the other games
+    const int fun = (int)(starFun(reward, 0.0f) + 0.5f);   // same star rule as the other games
     snprintf(b, sizeof(b), "Fun +%d", fun);
     cv.textCenter(W / 2, 126, b, rgb(250, 130, 170));
     cv.textCenter(W / 2, 136, "Wobble = someone inside", DIM);

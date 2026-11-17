@@ -14,7 +14,7 @@ Games tire your cat out. A good result cheers it up, and a win makes it a little
 | Knock It Off | Up to 2 pickups on the table | 17 |
 | Magic Cat | 1 to 3 (needs a box) | none |
 
-Every game except Magic Cat pays Fun for the stars you earn: about 17 for one star, 25 for two and 33 for three. A game with no stars pays no Fun.
+Every game except Magic Cat pays Fun for the stars you earn. 3 stars gives +34 Fun (an empty Fun bar fills up in 3 games), 2 stars gives +17 (6 games), 1 star gives +11 (9 games), and no stars gives +7 to +10, depending on how close you got (10 to 15 games). A Playful cat gets a quarter more Fun from each game.
 
 ## Chase the Laser
 
@@ -60,7 +60,7 @@ Pressing **FEED** starts the pouring game. Tilt the device to pour kibble for 5 
 
 ## Lap Cat (nap)
 
-Lap Cat is the nap game. Hold the device still, like a cat on your lap, and your cat's energy fills up. A few bumps will wake it. Once it is fully rested, the nap is over.
+Lap Cat is the nap game. Hold the device still, like a cat on your lap, and your cat's energy fills up. A few bumps will wake it. The PLAY menu has a CAT NAP (+50 energy) button, which you can use any time Energy is not full. A nap you choose gives at most 50 Energy. A worn-out cat (Energy under 15) is sent to a nap automatically, and that nap can refill it all the way.
 
 ## Litter box
 

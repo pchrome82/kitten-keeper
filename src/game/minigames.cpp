@@ -147,8 +147,10 @@ void Game::finishGame(int kind, int score, int target, int stars, int bonusCoins
   // hairballs are precious: the hidden pickups (laser rug, maze, knock) and the Scratching Post (1 per star) pay out
   int coins = bonusCoins + (kind == 1 ? res_.stars : 0);
   res_.coins = coins;
-  // Fun comes only from the stars you earn: 1 star +17, 2 stars +25, 3 stars +33 (a third of the old 50 / 75 / 100)
-  const float fun = gfun(res_.stars >= 3 ? 100.0f : (res_.stars == 2 ? 75.0f : (res_.stars == 1 ? 50.0f : 0.0f)));
+  // Fun by the stars you earn: 3 stars +34, 2 stars +17, 1 star +11, none +7..10 (by how close you got)
+  // (no stars: how close they got. Maze: banked points towards one star; Laser: dodges; Scratching Post: hit %; Knock It Off: items saved)
+  const float perf = target > 0 ? (float)score / (target * 0.6f) : (kind == 0 ? score / 20.0f : (kind == 1 ? score / 50.0f : (kind == 4 ? (float)score : 0.5f)));
+  const float fun = starFun(res_.stars, perf);   // (see starFun: 3 / 6 / 9 / 10-15 games to fill the bar)
   res_.funGain = fun;
   if (res_.stars >= 3) recordMilestone(MS_STARS);
   float chonkLoss = clampf(0.6f + score * (kind == 0 ? 0.12f : 0.03f), 0.5f, 4.0f);
