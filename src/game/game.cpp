@@ -244,11 +244,17 @@ void Game::autosave(bool force) {
 
 void Game::updateInput(bool down, int x, int y) {
   in.pressed = in.released = in.tap = false;
-  if (down && !in.down) { in.pressed = true; in.px = x; in.py = y; in.downMs = nowMs; }
+  // A press belongs to the screen it landed on, and a screen ignores presses for its first moment: a quick second tap
+  // (or a finger still down from the last screen) must not fire whatever sits at the same spot on the new one.
+  if (down && !in.down) {
+    in.px = x; in.py = y; in.downMs = nowMs;
+    in.serial = guardSerial_; in.early = guardT_ < TAP_GUARD;
+    in.pressed = !in.early;
+  }
   if (!down && in.down) {
     in.released = true;
     in.heldMs = (int)(nowMs - in.downMs);
-    in.tap = (abs(in.x - in.px) <= 14 && abs(in.y - in.py) <= 14 && in.heldMs < 1000);   // forgiving: firm presses and edge jitter still count
+    in.tap = !in.early && in.serial == guardSerial_ && (abs(in.x - in.px) <= 14 && abs(in.y - in.py) <= 14 && in.heldMs < 1000);   // forgiving: firm presses and edge jitter still count
   }
   in.down = down;
   if (down) { in.x = x; in.y = y; in.heldMs = (int)(nowMs - in.downMs); }
@@ -490,6 +496,7 @@ void Game::toast(const char* fmt, ...) {
 
 void Game::setScreen(Screen s) {
   scr = s;
+  guardTaps();
   napAsk_ = false;   // (the Play menu's "too tired to explore" pop-up never outlives a screen change)
   scrT_ = 0;
   scrSerial_++;
@@ -728,7 +735,7 @@ bool Game::frame(Canvas& cv, bool touchDown, int physX, int physY) {
   fi.keyed = false; gShadowKey = false; gRoomDim = 100;
   pet.trait = sv.x8.trait < TRAIT_COUNT ? sv.x8.trait : 0;
   anim_ += dt;
-  scrT_ += dt;
+  scrT_ += dt; guardT_ += dt;
   idleSec += dt;
 
   // PWR / BOOT button: screen off (the clock and their needs keep going) / back on

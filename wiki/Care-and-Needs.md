@@ -100,7 +100,7 @@ Adult cats and juniors sometimes go hunting when they are happy and healthy (Fun
 
 Catches left on the floor for 15 minutes while you are there are lost. A cat may also leave a catch for you while you are away, during the day.
 
-Sometimes a mouse dashes across the home room. Tap it while it runs to catch it for one hairball.
+Sometimes a mouse dashes across the home room. Tap it while it runs to catch it for one hairball. Your cat can still be sent after the mouse while it is eating.
 
 ## Meows
 

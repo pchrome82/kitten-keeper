@@ -124,8 +124,8 @@ void Game::shopHomes(Canvas& cv, int y0) {
       uint16_t p = img[(y * 4 + 1) * ROOM_W + x * 4 + 1];
       cv.set(tx + x, ty + y, p == 0xF81F ? sky : p);
     }
-  if (button(cv, 6, ty + th / 2 - 12, 30, 24, "<", PURPLE)) { homeSel_ = (i + nHomes - 1) % nHomes; sound(SND_TAP); }
-  if (button(cv, W - 36, ty + th / 2 - 12, 30, 24, ">", PURPLE)) { homeSel_ = (i + 1) % nHomes; sound(SND_TAP); }
+  if (button(cv, 6, ty + th / 2 - 12, 30, 24, "<", PURPLE)) { homeSel_ = (i + nHomes - 1) % nHomes; }
+  if (button(cv, W - 36, ty + th / 2 - 12, 30, 24, ">", PURPLE)) { homeSel_ = (i + 1) % nHomes; }
   int y = ty + th + 5;
   cv.textCenter(W / 2, y, HOME_NAME[i], i == NUM_ROOMS - 1 ? rgb(255, 214, 120) : TXT);
   cv.textCenter(W / 2, y + 10, HOME_VIEW[i], DIM);
@@ -214,8 +214,8 @@ void Game::screenMagic(Canvas& cv) {
   if (g.state == 0) {
     cv.textCenter(W / 2, 168 - 6, "Is the cat under the box?", TXT);
     cv.textCenter(W / 2, 176 - 3, "Watch for a wobble...", DIM);
-    if (button(cv, 8, 190, 82, 22, "IN THERE!", GREEN)) { g.guess = 1; g.state = 1; g.t = 0; sound(SND_TAP); }
-    if (button(cv, 94, 190, 82, 22, "EMPTY", BLUE)) { g.guess = 0; g.state = 1; g.t = 0; sound(SND_TAP); }
+    if (button(cv, 8, 190, 82, 22, "IN THERE!", GREEN)) { g.guess = 1; g.state = 1; g.t = 0; }
+    if (button(cv, 94, 190, 82, 22, "EMPTY", BLUE)) { g.guess = 0; g.state = 1; g.t = 0; }
   } else if (g.state == 1) {
     if (prevT < 0.8f && g.t >= 0.8f) sound(g.inside ? SND_MEOW_SOFT : SND_SAD);   // the empty box gets a disappointed meow
     if (prevT < 1.5f && g.t >= 1.5f) sound((g.guess == 1) == g.inside ? SND_CHIME : SND_MISS);
@@ -756,7 +756,7 @@ void Game::screenJournal(Canvas& cv) {
       if (now) { snprintf(b, sizeof(b), "With you now  %dd  caught %d", (int)pet.ageDays(), pet.d.preyCount); cv.text(30, y + 11, b, rgb(150, 255, 190)); }
       else { snprintf(b, sizeof(b), "%s  %dd  caught %d", endingName(a->ending), a->ageDays, a->prey); cv.text(30, y + 11, b, endColor(a->ending)); }
       cv.text(172, y + 6, ">", DIM);
-      if (hit) { journalPage_ = listPages + i; sound(SND_TAP); }
+      if (hit) { journalPage_ = listPages + i; sound(SND_TAP); guardTaps(); }
     }
     snprintf(b, sizeof(b), "Cats raised: %lu", (unsigned long)sv.lifeCats);
     cv.textCenter(W / 2, 172, b, DIM);
@@ -812,7 +812,7 @@ void Game::screenJournal(Canvas& cv) {
   }
   if (button(cv, 8, 196, 52, 22, "<", PURPLE, journalPage_ > 0)) journalPage_--;
   if (button(cv, 66, 196, 52, 22, pg >= listPages && pg < listPages + cats ? "CATS" : "BACK", GREEN)) {
-    if (pg >= listPages && pg < listPages + cats) journalPage_ = (pg - listPages) / ROWS;   // an album: back to the list
+    if (pg >= listPages && pg < listPages + cats) { journalPage_ = (pg - listPages) / ROWS; guardTaps(); }   // an album: back to the list
     else setScreen(S_MENU);
   }
   if (button(cv, 124, 196, 52, 22, ">", PURPLE, journalPage_ < PAGES - 1)) journalPage_++;

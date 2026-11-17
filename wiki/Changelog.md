@@ -2,6 +2,7 @@
 
 Newest first. One line per version.
 
+- **v1.3.5:** The cat can chase the house mouse while eating; a quick double tap no longer presses a button on the next screen; holding + or - no longer adds an extra step on release; hairballs, mess and the gift box on the floor are spaced out so they are easier to tap.
 - **v1.3.4:** Mini-game Fun now follows your stars (3 stars fill the bar in 3 games, 2 in 6, 1 in 9, none in 10 to 15); a Cat Nap button in the Play menu (+50 Energy at most); a tired adult's Explore button explains what it needs and offers a nap; Catnip costs 3 hairballs.
 - **v1.3.3:** The angel and butterfly wings are a little smaller (85% of their v1.3.2 size) and sit properly on the cat's back from the side and from behind; the T-Shirt is now sky blue with a white collar and a yellow star.
 - **v1.3.2:** New T-Shirt and Butterfly Wings in the Wardrobe; bigger angel wings and a new wizard hat; the Santa Hat is sold in the shop; Alley King rematches award the Cowboy Hat, Bandana or Angel Wings (then 20 hairballs); a secret breed changed to a regular one stays grown up.

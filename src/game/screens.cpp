@@ -85,12 +85,15 @@ bool Game::stepper(Canvas& cv, int x, int y, int w, const char* label, int& val,
   snprintf(b, sizeof(b), "%d", val);
   bool dn = button(cv, bx, y, 24, 22, "-", PURPLE);
   bool up = button(cv, bx + 64, y, 24, 22, "+", PURPLE);
+  static bool repeated = false;   // this press has already auto-repeated: letting go must not add one more step
+  if (in.tap && repeated) dn = up = false;
+  if (!in.down) repeated = false;
   cv.textCenter(bx + 44, y + 8, b, GOLD);
   bool holdDn = in.down && in.px >= bx && in.px < bx + 24 && in.py >= y && in.py < y + 22 && in.heldMs > 450;
   bool holdUp = in.down && in.px >= bx + 64 && in.px < bx + 88 && in.py >= y && in.py < y + 22 && in.heldMs > 450;
   if (holdDn || holdUp) {
     acc += dt;
-    if (acc > 0.09f) { acc = 0; if (holdDn) dn = true; else up = true; }
+    if (acc > 0.09f) { acc = 0; repeated = true; if (holdDn) dn = true; else up = true; }
   }
   if (dn) { val -= step; changed = true; }
   if (up) { val += step; changed = true; }
@@ -184,7 +187,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.4", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.5", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -406,7 +409,7 @@ void Game::screenPlay(Canvas& cv) {
     cv.textCenter(W / 2, qy + 33, "A Cat Nap gives +50:", TXT);
     cv.textCenter(W / 2, qy + 44, "hold the device still.", DIM);
     if (button(cv, qx + 8, qy + 62, 64, 24, "CAT NAP", BLUE, ok)) { napAsk_ = false; startLap(true); return; }
-    if (button(cv, qx + qw - 72, qy + 62, 64, 24, "BACK", PURPLE)) napAsk_ = false;
+    if (button(cv, qx + qw - 72, qy + 62, 64, 24, "BACK", PURPLE)) { napAsk_ = false; guardTaps(); }
     return;
   }
   int y = py + 18, bh = 15, gap = 2;
@@ -424,7 +427,7 @@ void Game::screenPlay(Canvas& cv) {
   const bool xcan = ok && exploreAllowed(&xwhy);
   const bool tiredAdult = ok && !xcan && pet.stage() >= STAGE_ADULT;   // grown up, just short of Energy: the button stays lit and explains
   const bool xok = xcan || tiredAdult;
-  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 140, 90), xok)) { if (tiredAdult) { napAsk_ = true; return; } startExplore(); return; }
+  if (button(cv, px + 8, y, pw - 16, bh, "EXPLORE (adult stage)", rgb(60, 140, 90), xok)) { if (tiredAdult) { napAsk_ = true; guardTaps(); return; } startExplore(); return; }
   y += bh + gap;
   {   // TOGETHER (up to 4 devices; the radio comes on only once it's tapped), with a Wi-Fi symbol after "requires"
     static const char* TL = "TOGETHER - requires   ";
@@ -436,7 +439,7 @@ void Game::screenPlay(Canvas& cv) {
     // Wi-Fi: two arcs over a dot, as tall as the letters
     static const char* WIFI[7] = {"  #####  ", " #     # ", "#  ###  #", "  #   #  ", "         ", "    #    ", "         "};
     for (int r = 0; r < 7; r++) for (int c = 0; c < 9; c++) if (WIFI[r][c] == '#') cv.set(tx + c, ty + r, wc);
-    if (hit) { if (tiredAdult) { napAsk_ = true; return; } startLink(); return; }
+    if (hit) { if (tiredAdult) { napAsk_ = true; guardTaps(); return; } startLink(); return; }
   }
   y += bh + gap;
   if (button(cv, px + 8, y, pw - 16, bh, "CAT NAP (+50 energy)", rgb(90, 130, 220), ok && pet.d.energy < 99.5f)) { startLap(true); return; }   // a rest whenever you like
@@ -560,7 +563,7 @@ void Game::screenShop(Canvas& cv) {
       if (button(cv, 20, 34 + i * 32, 144, 28, opts[i].label, opts[i].col)) {
         if (i == 0) { wardFromShop_ = true; wardTab_ = 0; wardSel_ = sv.wornHat; setScreen(S_WARDROBE); return; }
         static const int PAGE[5] = {0, 0, 1, 2, 4};
-        shopPage_ = PAGE[i]; if (shopPage_ == 4) homeSel_ = sv.room;
+        shopPage_ = PAGE[i]; if (shopPage_ == 4) homeSel_ = sv.room; guardTaps();
       }
     }
     updateParticles(dt);
@@ -648,7 +651,7 @@ void Game::screenShop(Canvas& cv) {
   }
   updateParticles(dt);
   drawToasts(cv);
-  if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) shopPage_ = -1;
+  if (button(cv, 40, 196, 104, 24, "BACK", PURPLE)) { shopPage_ = -1; guardTaps(); }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1017,7 +1020,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.4", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.5", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
@@ -1497,7 +1500,7 @@ void Game::screenWardrobe(Canvas& cv) {
   drawIcon(cv, 6, CORNER + 4, 9);
   cv.text(CORNER + 12, 5, b, coinColor(GOLD));
   const int tab = wardTab_;
-  for (int i = 0; i < 4; i++) if (button(cv, 4 + i * 45, 18, 43, 15, WARD_TAB[i], tab == i ? GREEN : PURPLE)) { wardTab_ = i; wardSel_ = wornOf(sv, i); sound(SND_TAP); }
+  for (int i = 0; i < 4; i++) if (button(cv, 4 + i * 45, 18, 43, 15, WARD_TAB[i], tab == i ? GREEN : PURPLE)) { wardTab_ = i; wardSel_ = wornOf(sv, i); }
   // cells: "none" + the items of this slot
   int ids[8], n = 0; ids[n++] = 0;
   for (const Costume& c : COSTUMES) if (c.slot == tab) ids[n++] = c.id;

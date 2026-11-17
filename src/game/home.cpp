@@ -194,7 +194,7 @@ void Game::drawItem(Canvas& cv, int item, int x, int y) {
 }
 
 void Game::drawFloorX(int i, int& x, int& y) const {
-  static const int xs[4] = {64, 118, 84, 146};   // (the first: clear of the Luxury Chair's legs)
+  static const int xs[4] = {70, 112, 90, 152};   // (the first: clear of the Luxury Chair's legs)
   static const int ys[4] = {167, 170, 174, 166};
   x = xs[i & 3];
   y = ys[i & 3];
@@ -919,7 +919,7 @@ void Game::drawHome(Canvas& cv, bool interactive) {
   }
   int hairs = pet.d.hairballsOnFloor - holdHair_;
   for (int i = 0; i < hairs; i++) {
-    static const int hx[3] = {40, 70, 150}, hy[3] = {172, 175, 172};
+    static const int hx[3] = {46, 134, 168}, hy[3] = {174, 176, 174};   // (clear of the gift box, the floor mess spots and the catch)
     // it turns into a mess after 30 min: for the last 10 it wobbles and the marker goes red
     const bool old = pet.d.hbAge > 1200.0f;
     const int wob = old ? (int)(sinf(anim_ * 14 + i) * 1.5f) : 0;
@@ -1014,7 +1014,7 @@ void Game::homeInput() {
   const bool inRoom = in.tap && y >= HUD_H && y < TOOL_Y;
   // the mouse
   if (mouse_.st >= 1 && mouse_.st <= 3 && tapIn((int)mouse_.x - 12, mouseRunY() - 17, 24, 22) && inRoom) {
-    if (pet.sleeping || a_.act == A_SLEEP || a_.act == A_EAT || a_.act == A_POOP || a_.act == A_HACK || a_.act == A_HIDDEN || a_.act == A_EXIT || a_.act == A_ENTER) {
+    if (pet.sleeping || a_.act == A_SLEEP || a_.act == A_POOP || a_.act == A_HACK || a_.act == A_HIDDEN || a_.act == A_EXIT || a_.act == A_ENTER) {
       toast("%s is busy right now.", pet.d.name);
     } else {
       mouse_.st = 4; mouse_.t = 0;
@@ -1025,7 +1025,7 @@ void Game::homeInput() {
     return;
   }
   // a gift box waiting to be opened
-  if (sv.pad9[0] && tapIn(GIFT_X - 13, GIFT_Y - 26, 32, 30) && inRoom) { openGift(); return; }
+  if (sv.pad9[0] && tapIn(GIFT_X - 12, GIFT_Y - 24, 26, 26) && inRoom) { openGift(); return; }
   // the catch they brought home
   if (pet.d.preyOnFloor && holdPrey_ <= 0 && tapIn(96, 152, 32, 28) && inRoom) {
     int v = preyValue(pet.d.preyOnFloor);
@@ -1042,8 +1042,8 @@ void Game::homeInput() {
   // hairballs
   int hairs = pet.d.hairballsOnFloor - holdHair_;
   for (int i = 0; i < hairs; i++) {
-    static const int hx[3] = {40, 70, 150}, hy[3] = {172, 175, 172};
-    if (tapIn(hx[i] - 13, hy[i] - 13, 27, 27) && inRoom) {
+    static const int hx[3] = {46, 134, 168}, hy[3] = {174, 176, 174};   // (clear of the gift box, the floor mess spots and the catch)
+    if (tapIn(hx[i] - 10, hy[i] - 10, 21, 21) && inRoom) {
       pet.collectHairball();
       giveCoins(1);
       recordMilestone(MS_HAIRBALL);

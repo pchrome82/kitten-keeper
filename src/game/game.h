@@ -14,6 +14,7 @@ namespace cat {
 
 // ---- layout ----
 constexpr int HUD_H = 26;
+constexpr float TAP_GUARD = 0.35f;   // seconds a newly opened screen ignores presses (stops a double tap carrying over)
 constexpr float AMB_SECS = 9.0f;   // length of the ambulance scene
 constexpr int SKIN_FEE = 10;   // switching breed mid-game (a new kitten after a game over may be any regular breed for free)
 constexpr int VET_FEE = 10;   // hairballs charged when a cat collapses at 0 health
@@ -272,6 +273,8 @@ class Game {
     int x = 0, y = 0, px = 0, py = 0;
     uint32_t downMs = 0;
     int heldMs = 0;
+    uint32_t serial = 0;   // the screen (scrSerial_) the press landed on
+    bool early = false;    // pressed within TAP_GUARD of that screen opening: ignored
   } in;
   bool swallow_ = false;
   MotionDetector motion_;
@@ -376,6 +379,8 @@ class Game {
   float blinkT_ = 3;
   int litterHits_ = 0;
   bool secretNew_ = false;      // the ending just revealed a secret breed for the first time
+  float guardT_ = 1; uint32_t guardSerial_ = 0;   // time since the screen (or page) last changed, and a count of those changes
+  void guardTaps() { guardT_ = 0; guardSerial_++; }   // a new screen or page: ignore presses for TAP_GUARD, and drop a press already under way
   uint32_t scrSerial_ = 0;   // +1 every time a screen is opened (so a screen can tell its first frame reliably)
   uint32_t litterSerial_ = 0xFFFFFFFFu;
   // ---- touch targets: every button / tap area drawn this frame. A tap goes to the ONE target nearest
