@@ -26,6 +26,7 @@ constexpr float KITTEN_GAME_FUN = 0.75f;
 constexpr uint32_t EXJ_CRYSTAL = 1u << 30;   // sv.ex.journal: the Cave Crystal (from the Deep Tunnels' chest): Explore screens cost 4 less energy (ex.flags is full)
 constexpr uint8_t EXF_TRAIL_PAWS = 128;   // sv.ex.flags: the Trail Paws (won with the first hairball knockout): Explore screens cost 8 energy, not 10   // a kitten (under half a day) gets 25% less Fun from a game: more games to fill a new kitten's bar     // games fill the Fun bar at a third of their old rate
 inline float gameFun(float f) { return (float)(int)(f * GAME_FUN + 0.5f); }   // rounded to whole points
+constexpr uint32_t CHAIR_LIFE = 36 * 3600;   // seconds the Luxury Chair lasts before the cat's claws turn it into a Ripped Chair; the Ripped Chair lasts this long again
 constexpr float EXPLORE_ENERGY = 50.0f;
 constexpr uint32_t PET_HB_EVERY = 3 * 3600;   // a hairless cat's petting hairball: at most one per 3 hours      // energy an Explore trip (or a match) takes   // how dark the home gets behind a popup (percent)
 constexpr int TOOL_H = 40;
@@ -65,7 +66,7 @@ enum ConfirmId : uint8_t { CF_NONE, CF_RESET, CF_NEWCAT, CF_SKIN };
 enum Act : uint8_t {
   A_IDLE, A_WALK, A_EAT, A_POOP, A_HACK, A_SLEEP, A_GROOM, A_ZOOM, A_MEOW, A_HAPPY, A_YAWN,
   A_EXIT, A_HIDDEN, A_ENTER, A_SULK, A_STARE, A_WINDOW,
-  A_WHEEL, A_FLOAT, A_COUNT   // secret breeds: the Hamster runs in its wheel, the Rainbow Cat floats up to the window   // A_STARE: staring at something off screen; A_WINDOW: watching out of the window
+  A_WHEEL, A_FLOAT, A_CHAIR, A_COUNT   // A_CHAIR: reared up scratching the chair; secret breeds: the Hamster runs in its wheel, the Rainbow Cat floats up to the window   // A_STARE: staring at something off screen; A_WINDOW: watching out of the window
 };
 
 struct Actor {
@@ -343,6 +344,8 @@ class Game {
   void giveToy(int id) { if (!hasItem(id)) { sv.items |= (uint16_t)(1u << id); updateToys(); } }   // Explore finds: the toys are no longer sold
   // boxes, magic cat, litter (extras.cpp)
   void updateBox();
+  void updateChairs();     // the Luxury Chair turns into a Ripped Chair, and the Ripped Chair falls apart (see CHAIR_LIFE)
+  void startChair(int item);   // a chair was just bought: its wear timer starts
   // journal, birthdays and seasons (extras.cpp)
   void recordMilestone(int m);
   void takePhoto(int stage);

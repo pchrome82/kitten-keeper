@@ -28,7 +28,9 @@ Furniture helps your cat nap better and keeps its Fun up for longer. The shop sh
 
 Some notes:
 
-- Only the best nap spot you own counts for napping. For Fun, the chairs and toys add up, but only the bigger of Cat Tree and Cat Tree + Bed counts.
+- The Luxury Chair and Ripped Chair are temporary. The Luxury Chair lasts 36 hours, then the cat claws it into a Ripped Chair, which lasts another 36 hours before it falls apart. The timers run in real time, even offline. The shop shows OWNED and the time left (for example "12h left").
+- Their Nap and Fun bonuses are the only furniture bonuses that stack.
+- Otherwise, only the best nap spot you own counts for napping. For Fun, toys add up, but only the bigger of Cat Tree and Cat Tree + Bed counts.
 - Every furniture purchase comes with a free **Cardboard Box**, if you have no box, a Tissue Box or a Shoebox.
 - Toys are not sold any more. You find them while exploring: a Toy Mouse, a Yarn Ball, a Feather Wand and a Crinkle Tunnel. Each one slows your cat's Fun drain a little, and the Feather Wand helps the most. With all four toys, a kitten's Fullness and Fun last much longer overnight.
 

@@ -139,6 +139,7 @@ void Game::begin() {
   for (int src = 0; src < 2 && !ok; src++) {
     auto load = [&](uint32_t len) { memset(&tmp, 0, sizeof(tmp)); return src == 0 ? plat->loadSave(&tmp, len) : plat->loadSaveBackup(&tmp, len); };
     if (load(sizeof(tmp)) && saveValid(tmp)) ok = true;
+    else if (load(SAVE_V9_SIZE) && saveMigrateV9(tmp)) ok = true;
     else if (load(SAVE_V8_SIZE) && saveMigrateV8(tmp)) ok = true;
     else if (load(SAVE_V7_SIZE) && saveMigrateV7(tmp)) ok = true;
     else if (load(SAVE_V6_SIZE) && saveMigrateV6(tmp)) ok = true;
@@ -767,6 +768,7 @@ bool Game::frame(Canvas& cv, bool touchDown, int physX, int physY) {
 
   updateDecor();
   updateBox();
+  updateChairs();
   updateSpecialDays();
   updateSim();
   if (pet.sleeping) ex_.active = false;   // an Explore trip lasts while they're awake

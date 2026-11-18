@@ -134,7 +134,15 @@ float Pet::idealWeight() const {
   const float a = growAge();
   if (a < AGE_JUNIOR) return 35.0f;
   if (a >= AGE_ADULT) return 50.0f;
-  return 35.0f + 15.0f * (a - AGE_JUNIOR) / (AGE_ADULT - AGE_JUNIOR);   // growing up
+  return 45.0f;   // junior
+}
+
+// The weight from which the chonk body shows (the skinny body shows 11 below the ideal weight, at every age).
+float Pet::chonkBodyAt() const {
+  const float a = growAge();
+  if (a < AGE_JUNIOR) return 51.0f;
+  if (a >= AGE_ADULT) return 70.0f;
+  return 60.0f;   // junior
 }
 
 float Pet::weightSpeed() const {
@@ -143,10 +151,18 @@ float Pet::weightSpeed() const {
   return 1.0f - 0.35f * clampf((over - 3) / 32.0f, 0, 1);       // -35% once they're 35 over ideal
 }
 
-float Pet::gameFat() const { return clampf(fatLook() * 1.25f, 0.0f, 1.0f); }
+float Pet::gameFat() const { return clampf(rawFat() * 1.25f, 0.0f, 1.0f); }
 float Pet::gameDrag() const { return 1.0f - 0.15f * gameFat(); }
 float Pet::gameScale() const { return 1.0f + 0.25f * gameFat(); }
-float Pet::fatLook() const { return clampf((d.chonk - idealWeight()) / 50.0f, -0.3f, 1.3f); }
+// How far over / under the ideal weight, on the scale the games use (they squeeze and enlarge the cat from this).
+float Pet::rawFat() const { return clampf((d.chonk - idealWeight()) / 50.0f, -0.3f, 1.3f); }
+
+// How the cat is DRAWN: the skinny body below -0.22 (11 under ideal), the chonk body from 0.26, which is placed exactly at chonkBodyAt().
+float Pet::fatLook() const {
+  const float over = d.chonk - idealWeight();
+  if (over <= 0) return clampf(over / 50.0f, -0.3f, 1.3f);
+  return clampf(over / (chonkBodyAt() - idealWeight()) * 0.26f, 0.0f, 1.3f);
+}
 
 float Pet::agility() const {
   const Breed& b = BREEDS[d.breed];

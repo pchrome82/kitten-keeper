@@ -2,6 +2,7 @@
 
 Newest first. One line per version.
 
+- **v1.3.9:** The Luxury Chair lasts 36 hours, then the cat claws it into a Ripped Chair for another 36 hours, counted in real time (even offline); the cat sometimes scratches the chair while idle; chairs sit flush against the right wall facing the window, behind the cat; ideal weight is 35 as a kitten, 45 as a junior and 50 as an adult, with new chonk and skinny thresholds; save format is v10 and older saves update automatically.
 - **v1.3.8:** The Luxury Chair moved from the left of the home room to the right-hand wall, turned to face the window, so it no longer covers the mouse hole.
 - **v1.3.7:** Downtown cars make their U-turn in the road instead of on the sidewalk; the Luxury Chair stands against the back wall in the corner of the home room, with your cat in front of it.
 - **v1.3.6:** The Play menu's TOGETHER button is gone: EXPLORE opens a pop-up with SOLO EXPLORE and EXPLORE TOGETHER; each Play menu button has its own colour; BOOT mutes and unmutes the sound (PWR still turns the screen off and on).

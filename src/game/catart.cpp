@@ -12,7 +12,7 @@ inline float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi 
 static void spriteSel(const CatDraw& d, int& set, int& body, int& anim, int& idx, const uint16_t*& pal) {
   int breed = isSecretBreed(d.breed) ? d.breed : (d.breed >= NUM_BREEDS ? BR_KITTEN : (d.breed < 0 ? 0 : d.breed));   // 7 = generic kitten palette
   set = CAT_BREED_SET[breed]; pal = CAT_PALS[breed];
-  body = d.fat < -0.22f ? SB_SKINNY : (d.fat > 0.26f ? SB_CHONK : SB_NORMAL);
+  body = d.fat < -0.22f ? SB_SKINNY : (d.fat >= 0.26f ? SB_CHONK : SB_NORMAL);
   switch (d.pose) {
     case POSE_WALK: anim = SA_WALK; idx = (int)(d.t * 8.0f) & 3; break;
     case POSE_SLEEP: anim = SA_SLEEP; idx = (int)(d.t * 1.3f) & 1; break;

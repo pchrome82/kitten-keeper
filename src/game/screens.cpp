@@ -187,7 +187,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.8", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.9", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -526,6 +526,40 @@ static const ShopItem FURN[5] = {
   {"Luxury Chair", "Nap+30% Fun+10%", 25, ITEM_LCHAIR},
   {"Cat Tree + Bed", "Nap+50% Fun+20%", 45, ITEM_TREEBED}};
 
+// The chairs wear out with the real-time clock (like the boxes, so it also runs while the device is off):
+// the Luxury Chair lasts 36 hours and then the cat's claws have turned it into a Ripped Chair, which lasts another 36 hours.
+void Game::startChair(int item) {
+  if (item == ITEM_LCHAIR) sv.chairExp[0] = epoch + CHAIR_LIFE;
+  else if (item == ITEM_RCHAIR) sv.chairExp[1] = epoch + CHAIR_LIFE;
+}
+
+void Game::updateChairs() {
+  if (!sv.hasCat) return;
+  bool changed = false;
+  // a chair from before they wore out (or from an older save) starts its timer now
+  if (hasItem(ITEM_LCHAIR) && !sv.chairExp[0]) sv.chairExp[0] = epoch + CHAIR_LIFE;
+  if (hasItem(ITEM_RCHAIR) && !sv.chairExp[1]) sv.chairExp[1] = epoch + CHAIR_LIFE;
+  if (hasItem(ITEM_LCHAIR) && epoch >= sv.chairExp[0]) {
+    // it was ripped at the moment its time ran out, so the Ripped Chair's 36 hours count from then (not from now)
+    const uint32_t ripped = sv.chairExp[0] + CHAIR_LIFE;
+    sv.items &= (uint16_t)~(1u << ITEM_LCHAIR);
+    sv.chairExp[0] = 0;
+    if (!hasItem(ITEM_RCHAIR) || sv.chairExp[1] < ripped) sv.chairExp[1] = ripped;   // (one they already had keeps whichever lasts longer)
+    sv.items |= (uint16_t)(1u << ITEM_RCHAIR);
+    toast("%s clawed the Luxury Chair to bits!", pet.d.name);
+    sound(SND_POOF);
+    changed = true;
+  }
+  if (hasItem(ITEM_RCHAIR) && epoch >= sv.chairExp[1]) {
+    sv.items &= (uint16_t)~(1u << ITEM_RCHAIR);
+    sv.chairExp[1] = 0;
+    toast("The Ripped Chair fell apart!");
+    sound(SND_POOF);
+    changed = true;
+  }
+  if (changed) { updateToys(); autosave(false); }
+}
+
 void Game::updateToys() {
   float m = 1.0f;
   if (hasItem(ITEM_TREEBED)) m *= 0.80f; else if (hasItem(ITEM_TREE)) m *= 0.85f;   // the big purchases
@@ -633,13 +667,23 @@ void Game::screenShop(Canvas& cv) {
       else drawItem(cv, it.id, ix, iy - 4);
       cv.text(46, y + 4, it.name, TXT);
       cv.text(46, y + 15, it.desc, DIM);
-      if (hasItem(it.id)) { cv.text(142, y + 10, "OWNED", rgb(150, 255, 190)); continue; }
+      if (hasItem(it.id)) {
+        const bool chair = it.id == ITEM_LCHAIR || it.id == ITEM_RCHAIR;   // chairs wear out: show how long they have left
+        cv.text(142, y + (chair ? 5 : 10), "OWNED", rgb(150, 255, 190));
+        if (chair) {
+          const uint32_t exp = sv.chairExp[it.id == ITEM_LCHAIR ? 0 : 1];
+          const int left = (int)(exp > epoch ? exp - epoch : 0);
+          if (left >= 3600) snprintf(b, sizeof(b), "%dh left", (left + 1800) / 3600); else snprintf(b, sizeof(b), "%dm left", (left + 30) / 60);
+          cv.textRight(176, y + 16, b, DIM);
+        }
+        continue;
+      }
       snprintf(b, sizeof(b), "%d", it.price);
       bool can = sv.coins >= (uint32_t)it.price;
       if (button(cv, 138, y + 3, 38, 21, b, can ? GREEN : rgb(120, 70, 80), true)) {
         if (!spend(*this, sv.coins, it.price)) { toast("Not enough hairballs!"); sound(SND_LOSE); }
         else {
-          sv.items |= (uint16_t)(1u << it.id); sound(SND_WIN); updateToys();
+          sv.items |= (uint16_t)(1u << it.id); sound(SND_WIN); startChair(it.id); updateToys();
           if (shopPage_ == 1) recordMilestone(MS_FURNI);
           if (shopPage_ == 1 && sv.boxType < BT_CARD) { giveBox(BT_CARD); toast("%s + free cardboard box!", it.name); }   // every furniture purchase comes with a box
           else toast("%s bought!", it.name);
@@ -1019,7 +1063,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.8", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.9", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }

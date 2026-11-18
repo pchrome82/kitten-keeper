@@ -36,6 +36,14 @@ void saveSeal(SaveData& s) {
   s.crc = crc32(reinterpret_cast<const uint8_t*>(&s) + 12, sizeof(SaveData) - 12);
 }
 
+bool saveMigrateV9(SaveData& s) {
+  if (s.magic != SAVE_MAGIC || s.version != 9 || s.size != SAVE_V9_SIZE) return false;
+  if (s.crc != crc32(reinterpret_cast<const uint8_t*>(&s) + 12, SAVE_V9_SIZE - 12)) return false;
+  s.chairExp[0] = s.chairExp[1] = 0;   // a chair they already own starts its wear timer when the game next runs
+  saveSeal(s);
+  return true;
+}
+
 bool saveMigrateV8(SaveData& s) {
   if (s.magic != SAVE_MAGIC || s.version != 8 || s.size != SAVE_V8_SIZE) return false;
   if (s.crc != crc32(reinterpret_cast<const uint8_t*>(&s) + 12, SAVE_V8_SIZE - 12)) return false;
@@ -47,6 +55,7 @@ bool saveMigrateV8(SaveData& s) {
     a.breed = s.hall[i].breed; a.ending = s.hall[i].ending; a.ageDays = s.hall[i].ageDays; a.prey = s.hall[i].prey;
   }
   memset(s.pad9, 0, sizeof(s.pad9)); s.worldSeed = 0;
+  s.chairExp[0] = s.chairExp[1] = 0;
   saveSeal(s);
   return true;
 }

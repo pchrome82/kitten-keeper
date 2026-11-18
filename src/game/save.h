@@ -7,8 +7,8 @@
 namespace cat {
 
 constexpr uint32_t SAVE_MAGIC = 0xC47F00D5u;
-constexpr uint16_t SAVE_VERSION = 9;   // 7 = + Explore world progress, 8 = + personality, journal, Sphynx petting,
-                                       // 9 = + the album of past cats (older saves are migrated, not lost)
+constexpr uint16_t SAVE_VERSION = 10;  // 7 = + Explore world progress, 8 = + personality, journal, Sphynx petting,
+                                       // 9 = + the album of past cats, 10 = + the chairs' wear timers (older saves are migrated, not lost)
 constexpr int HALL_MAX = 8;     // (the old Hall of Cats list: read from older saves only)
 constexpr int ALBUM_MAX = 24;   // the journal remembers this many past cats (then the oldest makes room)
 
@@ -100,6 +100,9 @@ struct SaveData {
   uint8_t albumCount;
   uint8_t pad9[3];      // gift boxes: [0] one waiting (0 none, else why), [1] good-care days in a row, [2] the day last counted
   uint32_t worldSeed;   // Explore's world for this player: 0 not made yet, 1 the classic map, else a random layout (made once)
+
+  // ---- v10: the chairs wear out (appended so v9 saves can be migrated) ----
+  uint32_t chairExp[2]; // epoch when the Luxury Chair [0] turns into a Ripped Chair / the Ripped Chair [1] falls apart (0 = not started yet)
 };
 
 void saveDefaults(SaveData& s);
@@ -111,7 +114,10 @@ constexpr uint32_t SAVE_V6_SIZE = (uint32_t)offsetof(SaveData, ex);
 // A v7 save (everything up to `x8`): check it and upgrade it in place to v8.
 bool saveMigrateV7(SaveData& s);
 constexpr uint32_t SAVE_V7_SIZE = (uint32_t)offsetof(SaveData, x8);
-// A v8 save (everything up to `album`): check it and upgrade it in place to v9.
+// A v9 save (everything up to `chairExp`): check it and upgrade it in place to v10.
+bool saveMigrateV9(SaveData& s);
+constexpr uint32_t SAVE_V9_SIZE = (uint32_t)offsetof(SaveData, chairExp);
+// A v8 save (everything up to `album`): check it and upgrade it in place to v9 (then v10).
 bool saveMigrateV8(SaveData& s);
 constexpr uint32_t SAVE_V8_SIZE = (uint32_t)offsetof(SaveData, album);
 uint32_t crc32(const uint8_t* p, uint32_t n);

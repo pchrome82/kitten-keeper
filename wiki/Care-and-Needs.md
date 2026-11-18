@@ -10,7 +10,7 @@ Your cat has a few needs that you look after every day. Keep them up and your ca
 | **Fun** | Top bar (ball) and Stats | How entertained it is. | Play games, pet it, and use toys and furniture. |
 | **Energy** | Top bar (moon) and Stats | How rested it is. Low energy means a nap. | Let it sleep, nap in a bed or box, press CAT NAP in the PLAY menu, or have a catnip treat from the shop. |
 | **Health** | Top bar (heart) and Stats | How well your cat is. At 0 it goes to the vet. | Keep it fed, clean and not too heavy. Vet visits help. |
-| **Weight** | Stats | How heavy it is. Ideal is 35 as a kitten and 50 as an adult. | Feed carefully and play. See the Weight section below. |
+| **Weight** | Stats | How heavy it is. Ideal is 35 as a kitten, 45 as a junior and 50 as an adult. | Feed carefully and play. See the Weight section below. |
 | **Grumpy** | Stats | How fed up it is with you. At 100 it runs away. | Keep the meters up, clean the mess, and pet it. |
 
 Fullness and Fun fall on the clock, whether you are looking or not. Energy only rises while your cat sleeps.
@@ -47,7 +47,7 @@ Your cat grows through four stages. Age moves faster when it is well looked afte
 | Stage | Age | What changes |
 |---|---|---|
 | **Kitten** | First half a day | Needs you most often. Does not hunt. Meals digest quickly. |
-| **Junior** | Half a day to 1 day | Can hunt and go on Explore once it is an adult. |
+| **Junior** | Half a day to 1 day | Can hunt and go on Explore once it is an adult. Its ideal weight is 45. |
 | **Adult** | 1 to 26 days | Can go on Explore. Its ideal weight is 50. |
 | **Senior** | 26 to 31 days | Slower in games and a little weaker in Explore fights. |
 
@@ -57,9 +57,10 @@ A well-kept cat lives about a month. At 31 days it retires. A cat that is unwell
 
 Your cat's weight matters. Heavier cats are slower in games and in Explore, and their Health falls if they are very overweight.
 
-- **Ideal weight:** 35 as a kitten, rising to 50 as an adult.
+- **Ideal weight:** 35 as a kitten, 45 as a junior (it stays at 45 while it grows), and 50 as an adult.
 - **Too heavy:** every bit over ideal makes it a little slower, up to about a third slower when it is 35 over. Being 30 or more over ideal slowly costs Health, and 45 or more over makes Health fall faster.
-- **Too skinny:** more than 13 under ideal. Pour in the green part of the feeding meter to put weight back on.
+- **Chonky body:** shows at 51 and up as a kitten, 60 and up as a junior, and 70 and up as an adult.
+- **Too skinny:** more than 11 under ideal, which means below 24 as a kitten, below 34 as a junior and below 39 as an adult (the skinny body shows at the same point). Pour in the green part of the feeding meter to put weight back on.
 - **Burning weight:** play and Explore burn weight off, so a cat that is a little heavy can slim down through games.
 
 ## Feeding

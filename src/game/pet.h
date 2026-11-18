@@ -141,9 +141,11 @@ class Pet {
   float gameScale() const;                // extra on-screen size in games: 1.0 .. 1.25
   float visualSize() const;               // 0.6 kitten .. 1.0 adult
   float kitFactor() const;                // 1 baby proportions .. 0 adult
-  float fatLook() const;
+  float fatLook() const;                  // how fat they are DRAWN (the chonk body from fat 0.26 = chonkBodyAt(), the skinny body below -0.22)
+  float rawFat() const;                   // over / under their ideal weight, 50 weight = 1.0 (what the games use)
+  float chonkBodyAt() const;              // the weight from which the chonk body shows: 51 kitten, 60 junior, 70 adult
   float idealWeight() const;
-  float weightSpeed() const;              // 1.0 at/below ideal ... 0.65 when very heavy (-35%)              // 35 for kittens, grows to 50 by adulthood ("chonk" is shown as Weight)
+  float weightSpeed() const;              // 1.0 at/below ideal ... 0.65 when very heavy (-35%)              // 35 for kittens, 45 for juniors, 50 for adults ("chonk" is shown as Weight)
   float boost = 1.0f;                     // the Hidden Hermit's amulet: +15% attack and speed (set by the game)
   int lookBreed() const;                  // breed to DRAW: NUM_BREEDS (generic kitten) while evolving
   int evolveChoice(float* scores = nullptr) const;   // which breed the care habits point at

@@ -155,21 +155,24 @@ void Game::drawItem(Canvas& cv, int item, int x, int y, bool mirror) {
     case ITEM_TUNNEL: {
       cv.ellipse(x, y - 4, 14, 8, ol); cv.ellipse(x, y - 4, 13, 7, rgb(86, 160, 230)); cv.ellipse(x - 9, y - 3, 3, 5, rgb(30, 40, 90));
       for (int k = -2; k <= 3; k++) cv.vline(x + k * 3, y - 10, 5, rgb(140, 200, 250)); break; }
-    case ITEM_RCHAIR: case 104: {   // old armchair, side view facing the table; clawed to bits
+    case ITEM_RCHAIR: case 104: {   // old armchair, side view facing the table; clawed to bits. mirror: back on the right, seat facing left
       const bool th = item == 104;   // shop thumbnail: a bit smaller
       const int s = th ? 1 : 0;
       Color fab = rgb(150, 72, 62), fabD = rgb(110, 48, 44), fabL = rgb(184, 100, 84), wood = rgb(96, 62, 40), stuff = rgb(244, 234, 214);
       int sw = th ? 18 : 24, bh = th ? 14 : 20, seatY = y - (th ? 8 : 11);
       int L = x - sw / 2;
-      cv.rect(L + 2, y - 4 + s, 2, 4 - s, wood); cv.rect(L + sw - 4, y - 4 + s, 2, 4 - s, wood);   // legs
-      cv.rect(L, seatY - bh, 6, bh + 1, fabD); cv.frame(L, seatY - bh, 6, bh + 1, ol);              // back (left, they face the table)
-      cv.rect(L, seatY, sw, 6, fab); cv.hline(L, seatY, sw, fabL); cv.frame(L, seatY, sw, 6, ol);     // seat cushion
-      cv.rect(L + sw - 5, seatY - 4, 5, 5, fabD); cv.frame(L + sw - 5, seatY - 4, 5, 5, ol);          // arm
+      // offsets are from the chair's left edge when facing right; mirrored they count in from the right edge
+      auto P = [&](int k) { return mirror ? L + sw - k : L + k; };                    // a point k px in
+      auto R = [&](int k, int w) { return mirror ? L + sw - k - w : L + k; };         // the left edge of a w px wide span starting k px in
+      cv.rect(R(2, 2), y - 4 + s, 2, 4 - s, wood); cv.rect(R(sw - 4, 2), y - 4 + s, 2, 4 - s, wood);   // legs
+      cv.rect(R(0, 6), seatY - bh, 6, bh + 1, fabD); cv.frame(R(0, 6), seatY - bh, 6, bh + 1, ol);      // back (against the wall, they face the room)
+      cv.rect(R(0, sw), seatY, sw, 6, fab); cv.hline(R(0, sw), seatY, sw, fabL); cv.frame(R(0, sw), seatY, sw, 6, ol);   // seat cushion
+      cv.rect(R(sw - 5, 5), seatY - 4, 5, 5, fabD); cv.frame(R(sw - 5, 5), seatY - 4, 5, 5, ol);        // arm
       // claw marks + stuffing poking out
-      cv.line(L + 1, seatY - bh + 3, L + 4, seatY - bh + 7, fabL); cv.line(L + 1, seatY - bh + 6, L + 4, seatY - bh + 10, fabL);
-      cv.set(L + 2, seatY - 3, stuff); cv.set(L + 3, seatY - 4, stuff); cv.set(L + 8, seatY + 2, stuff); cv.set(L + 9, seatY + 1, stuff);
-      cv.set(L + sw - 3, seatY - 5, stuff); cv.line(L + 12, seatY + 3, L + 15, seatY + 5, fabD);
-      if (!th) { cv.set(L - 1, seatY - bh + 2, stuff); cv.set(L - 2, seatY - bh + 1, stuff); cv.disc(L + 14, seatY + 2, 1, stuff); }
+      cv.line(P(1), seatY - bh + 3, P(4), seatY - bh + 7, fabL); cv.line(P(1), seatY - bh + 6, P(4), seatY - bh + 10, fabL);
+      cv.set(P(2), seatY - 3, stuff); cv.set(P(3), seatY - 4, stuff); cv.set(P(8), seatY + 2, stuff); cv.set(P(9), seatY + 1, stuff);
+      cv.set(P(sw - 3), seatY - 5, stuff); cv.line(P(12), seatY + 3, P(15), seatY + 5, fabD);
+      if (!th) { cv.set(P(-1), seatY - bh + 2, stuff); cv.set(P(-2), seatY - bh + 1, stuff); cv.disc(P(14), seatY + 2, 1, stuff); }
       break; }
     case ITEM_LCHAIR: case 105: {   // velvet wingback with gold trim and curvy legs; mirror: back on the right, seat facing left
       const bool th = item == 105;
@@ -748,6 +751,11 @@ void Game::updateActor() {
         }
         if (a.act != A_IDLE) break;
       }
+      // rarely: they rear up against the chair and sharpen their claws (this is what wears the Luxury Chair out)
+      if ((hasItem(ITEM_LCHAIR) || hasItem(ITEM_RCHAIR)) && pet.rnd() % 100 < 3) {
+        actorWalkTo((float)(LCHAIR_X - 14), A_CHAIR, 5.0f + pet.rndf() * 3.0f);
+        break;
+      }
       if (r < 0.40f) actorWalkTo(roamX(), A_IDLE, 0);
       else if (r < 0.62f) { a.act = A_GROOM; a.actT = 3.0f; }
       else if (r < 0.70f) { a.act = A_YAWN; a.actT = 1.6f; }
@@ -781,6 +789,11 @@ void Game::updateActor() {
         const float el = a.actLen - a.actT;
         if (el > 0.45f && a.actT > 0.45f) { wheelSpin_ += d * (6.0f + 4.0f * pet.agility()); if (((int)(a.t * 6)) % 9 == 0 && pet.rnd() % 4 == 0) sound(SND_TAP); }
         a.left = false;
+      }
+      if (a.act == A_CHAIR && ((int)(a.t * 2.2f) != (int)((a.t - d) * 2.2f))) {   // a stroke of the claws: a scratch and a few flying fibres
+        sound(SND_SCRATCH);
+        const Color fibre = hasItem(ITEM_LCHAIR) ? rgb(156, 104, 204) : rgb(184, 100, 84);
+        spawn(a.x + 10 + (float)(pet.rnd() % 8), a.y - 16 - (float)(pet.rnd() % 8), 4, fibre, (float)((int)(pet.rnd() % 21) - 8), -14, 0.7f);
       }
       if (a.act == A_FLOAT) {   // drift across to the window on the way up
         const float el = a.actLen - a.actT, u = clampf(el / 1.6f, 0, 1), s = u * u * (3 - 2 * u);
@@ -843,11 +856,13 @@ void Game::drawActor(Canvas& cv) {
     case A_WINDOW: pose = POSE_BACK; break;
     case A_WHEEL: pose = POSE_WALK; face = FACE_HAPPY; break;
     case A_FLOAT: pose = POSE_SIT; face = FACE_HAPPY; break;
+    case A_CHAIR: pose = POSE_UPRIGHT; face = FACE_HAPPY; break;   // reared up, clawing at the chair
     default: break;
   }
   if (m == 3 && a.act == A_IDLE) pose = POSE_SIT;
   CatDraw d = catLook(pose, face);
   if (a.act == A_GROOM) d.t = a.t;
+  if (a.act == A_CHAIR) { d.pawPhase = a.t * 7.0f; d.blink = false; d.faceLeft = false; }   // (paws alternate, as on the scratching post)
   if (a.act == A_STARE) { d.look = a.stareDir; d.blink = false; }
   if (pose == POSE_BACK) {   // facing away: window watching or sulking
     const float t = a.t;
@@ -956,9 +971,10 @@ void Game::drawHome(Canvas& cv, bool interactive) {
   // the tree stands at the back, against the wall: left of the middle, its trunk and step just right of the mouse hole
   if (hasItem(ITEM_TREEBED)) drawItem(cv, ITEM_TREEBED, TREE_X, TREE_Y); else if (hasItem(ITEM_TREE)) drawItem(cv, ITEM_TREE, TREE_X, TREE_Y);
   if (hasItem(ITEM_BED)) drawItem(cv, ITEM_BED, BED_X, 172);
-  const bool lchair = hasItem(ITEM_LCHAIR);   // the comfy one replaces the ripped one; it stands against the back wall, left, its back to the wall
-  if (!lchair && hasItem(ITEM_RCHAIR)) drawItem(cv, ITEM_RCHAIR, CHAIR_X, CHAIR_Y);
-  if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y, true);   // (against the wall, so everything on the floor is in front of it; mirrored: back on the right)
+  // the chair stands in the corner against the right wall, facing the window (mirrored: back on the right). The Luxury Chair wears into
+  // the Ripped Chair in the very same spot; if they own both, the comfy one is the one you see.
+  if (hasItem(ITEM_LCHAIR)) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y, true);
+  else if (hasItem(ITEM_RCHAIR)) drawItem(cv, ITEM_RCHAIR, LCHAIR_X + 2, LCHAIR_Y, true);   // (a little narrower, so its back still touches the wall)
   if (hasItem(ITEM_TUNNEL)) drawItem(cv, ITEM_TUNNEL, TUNNEL_X, TUNNEL_Y);   // mid screen, on the floor in front of the tree's foot
   if (pet.d.breed == BR_HAMSTER) drawWheel(cv, false);   // their wheel comes along to every apartment (the box, nearer, goes in front of it)
   bool inBox = sv.boxType && a_.act == A_SLEEP && fabsf(a_.x - BOX2_X) < 4 && !hasItem(ITEM_BED) && !hasItem(ITEM_TREEBED);
@@ -1085,7 +1101,7 @@ void Game::homeInput() {
     } else {
       pet.petIt(2.0f);
       sound(SND_MEOW_SOFT);
-      if (a_.act == A_IDLE || a_.act == A_GROOM || a_.act == A_SULK || a_.act == A_STARE || a_.act == A_WINDOW || a_.act == A_WHEEL || a_.act == A_FLOAT) { a_.act = A_HAPPY; a_.actT = 1.4f; }   // (petting snaps them out of a stare too)
+      if (a_.act == A_IDLE || a_.act == A_GROOM || a_.act == A_SULK || a_.act == A_STARE || a_.act == A_WINDOW || a_.act == A_WHEEL || a_.act == A_FLOAT || a_.act == A_CHAIR) { a_.act = A_HAPPY; a_.actT = 1.4f; }   // (petting snaps them out of a stare too)
       for (int i = 0; i < 2; i++) spawn(a_.x + (i * 10 - 5), a_.y - 36, 0, 0, 0, -22, 1.0f);
     }
     return;
