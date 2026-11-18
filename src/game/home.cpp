@@ -116,7 +116,7 @@ static float nightness(int hour, int minute) {
 
 
 // ---- furniture and toys (small procedural sprites; the room itself is static) ----
-void Game::drawItem(Canvas& cv, int item, int x, int y) {
+void Game::drawItem(Canvas& cv, int item, int x, int y, bool mirror) {
   const Color ol = rgb(30, 20, 36);
   switch (item) {
     case 103: {
@@ -171,21 +171,24 @@ void Game::drawItem(Canvas& cv, int item, int x, int y) {
       cv.set(L + sw - 3, seatY - 5, stuff); cv.line(L + 12, seatY + 3, L + 15, seatY + 5, fabD);
       if (!th) { cv.set(L - 1, seatY - bh + 2, stuff); cv.set(L - 2, seatY - bh + 1, stuff); cv.disc(L + 14, seatY + 2, 1, stuff); }
       break; }
-    case ITEM_LCHAIR: case 105: {   // velvet wingback with gold trim and curvy legs
+    case ITEM_LCHAIR: case 105: {   // velvet wingback with gold trim and curvy legs; mirror: back on the right, seat facing left
       const bool th = item == 105;
       Color vel = rgb(112, 58, 156), velD = rgb(78, 36, 114), velL = rgb(156, 104, 204), gold = rgb(236, 192, 84), goldD = rgb(170, 128, 40);
       int sw = th ? 18 : 26, bh = th ? 15 : 22, seatY = y - (th ? 8 : 11);
       int L = x - sw / 2;
-      cv.line(L + 2, y, L + 3, seatY + 5, goldD); cv.line(L + sw - 2, y, L + sw - 3, seatY + 5, goldD);   // curvy legs
-      cv.set(L + 1, y, gold); cv.set(L + sw - 1, y, gold);
-      cv.ellipse(L + 4, seatY - bh / 2, 5, bh / 2 + 1, ol); cv.ellipse(L + 4, seatY - bh / 2, 4, bh / 2, vel);   // plush rounded back
-      cv.vline(L + 3, seatY - bh + 3, bh - 4, velL);
-      for (int k = 0; k < 3; k++) cv.set(L + 4, seatY - bh + 4 + k * (bh / 3), gold);                          // buttons
-      cv.rect(L + 1, seatY, sw - 1, 6, velD); cv.frame(L + 1, seatY, sw - 1, 6, ol);                            // base
-      cv.ellipse(L + sw / 2 + 2, seatY, sw / 2 - 2, 3, vel); cv.hline(L + 6, seatY - 2, sw - 10, velL);        // puffy cushion
-      cv.hline(L + 1, seatY + 5, sw - 1, gold);                                                                    // gold trim
-      cv.ellipse(L + sw - 3, seatY - 3, 3, 4, ol); cv.ellipse(L + sw - 3, seatY - 3, 2, 3, vel);                // rolled arm
-      if (!th) { cv.vline(L + sw - 3, seatY + 6, 3, gold); cv.set(L + sw - 3, seatY + 9, goldD); }                // tassel
+      // offsets are from the chair's left edge when facing right; mirrored they count in from the right edge
+      auto P = [&](int k) { return mirror ? L + sw - k : L + k; };                    // a point k px in
+      auto R = [&](int k, int w) { return mirror ? L + sw - k - w : L + k; };         // the left edge of a w px wide span starting k px in
+      cv.line(P(2), y, P(3), seatY + 5, goldD); cv.line(P(sw - 2), y, P(sw - 3), seatY + 5, goldD);   // curvy legs
+      cv.set(P(1), y, gold); cv.set(P(sw - 1), y, gold);
+      cv.ellipse(P(4), seatY - bh / 2, 5, bh / 2 + 1, ol); cv.ellipse(P(4), seatY - bh / 2, 4, bh / 2, vel);   // plush rounded back
+      cv.vline(P(3), seatY - bh + 3, bh - 4, velL);
+      for (int k = 0; k < 3; k++) cv.set(P(4), seatY - bh + 4 + k * (bh / 3), gold);                          // buttons
+      cv.rect(R(1, sw - 1), seatY, sw - 1, 6, velD); cv.frame(R(1, sw - 1), seatY, sw - 1, 6, ol);             // base
+      cv.ellipse(P(sw / 2 + 2), seatY, sw / 2 - 2, 3, vel); cv.hline(R(6, sw - 10), seatY - 2, sw - 10, velL); // puffy cushion
+      cv.hline(R(1, sw - 1), seatY + 5, sw - 1, gold);                                                          // gold trim
+      cv.ellipse(P(sw - 3), seatY - 3, 3, 4, ol); cv.ellipse(P(sw - 3), seatY - 3, 2, 3, vel);                // rolled arm
+      if (!th) { cv.vline(P(sw - 3), seatY + 6, 3, gold); cv.set(P(sw - 3), seatY + 9, goldD); }                // tassel
       break; }
     case ITEM_WAND: {
       cv.line(x, y, x - 3, y - 16, rgb(160, 110, 70)); cv.line(x - 3, y - 16, x + 5, y - 22, rgb(200, 160, 110));
@@ -955,7 +958,7 @@ void Game::drawHome(Canvas& cv, bool interactive) {
   if (hasItem(ITEM_BED)) drawItem(cv, ITEM_BED, BED_X, 172);
   const bool lchair = hasItem(ITEM_LCHAIR);   // the comfy one replaces the ripped one; it stands against the back wall, left, its back to the wall
   if (!lchair && hasItem(ITEM_RCHAIR)) drawItem(cv, ITEM_RCHAIR, CHAIR_X, CHAIR_Y);
-  if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y);   // (against the wall, so everything on the floor is in front of it)
+  if (lchair) drawItem(cv, ITEM_LCHAIR, LCHAIR_X, LCHAIR_Y, true);   // (against the wall, so everything on the floor is in front of it; mirrored: back on the right)
   if (hasItem(ITEM_TUNNEL)) drawItem(cv, ITEM_TUNNEL, TUNNEL_X, TUNNEL_Y);   // mid screen, on the floor in front of the tree's foot
   if (pet.d.breed == BR_HAMSTER) drawWheel(cv, false);   // their wheel comes along to every apartment (the box, nearer, goes in front of it)
   bool inBox = sv.boxType && a_.act == A_SLEEP && fabsf(a_.x - BOX2_X) < 4 && !hasItem(ITEM_BED) && !hasItem(ITEM_TREEBED);

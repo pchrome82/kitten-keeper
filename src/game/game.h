@@ -34,7 +34,7 @@ constexpr int TOOL_H = 40;
 //   mid row:   crinkle tunnel 64-92 (mid screen, below the house mouse's run), luxury chair 31-57 (front left, over the litter box's corner)
 //   front row: bed 83-125, box 126-166, the Hamster's wheel far right
 constexpr int TREE_X = 60, TREE_Y = 138, BOX2_X = 146, CHAIR_X = 96, CHAIR_Y = 150;
-constexpr int LCHAIR_X = 28, LCHAIR_Y = 134;   // the Luxury Chair: against the back wall on the left, its back to the wall (x = its centre, y = its feet)
+constexpr int LCHAIR_X = 150, LCHAIR_Y = 134;   // the Luxury Chair: against the RIGHT wall (back to the wall, seat facing the window); x = its centre, y = its feet
 constexpr int GIFT_X = 18, GIFT_Y = 182;       // a waiting gift box: front left corner of the floor, below the litter tray (its base is row 160)
 constexpr int GIFT_STREAK = 5;                 // well-cared-for days in a row that earn one
 constexpr int TUNNEL_X = 78, TUNNEL_Y = 147;   // its top edge (y - 12) stays below the house mouse (rows ~122-129)
@@ -338,7 +338,7 @@ class Game {
   void setFlip(bool f);
   bool foodZero_ = false, funZero_ = false;   // the meter is empty (so the alert chirps once, not every frame)
   bool wasNapping_ = false, lapDue_ = false;   // out of energy -> Lap Cat as soon as you're home
-  void drawItem(Canvas& cv, int item, int x, int y);
+  void drawItem(Canvas& cv, int item, int x, int y, bool mirror = false);
   void updateToys();
   void giveToy(int id) { if (!hasItem(id)) { sv.items |= (uint16_t)(1u << id); updateToys(); } }   // Explore finds: the toys are no longer sold
   // boxes, magic cat, litter (extras.cpp)
