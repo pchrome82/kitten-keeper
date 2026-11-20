@@ -24,7 +24,7 @@ Explore is the big outdoor adventure. Once your cat is an adult, take it on a tr
 Every player's world is different. The neighbours, the caves, the garden and the nook land on different screens for each player, and the woods grow differently too. These parts stay the same for everyone:
 
 - **Home** is the bottom-left screen.
-- **The river** runs down the middle of the map. Fish swim along it, and there are bridges.
+- **The river** runs down the middle of the map. Fish swim along it, and there are wide bridges.
 - **Downtown** is the rightmost column of the map.
 - **The Alley King's lair** is the top screen, just left of downtown, behind a moat.
 
@@ -107,7 +107,7 @@ Fights happen when you walk into a wild cat, or when a stray is curled up on a b
 
 ### Wild cats
 
-A wild cat has 3 hits to take and your cat has 3 hearts. Press **SCRATCH** when the marker is in the green zone. Each hit takes one of the wild cat's hits. If your cat is very chonky (20 or more over its ideal weight), a hit counts double.
+A wild cat has a health bar and your cat has 3 hearts. Wild cats further from home are tougher. Press **SCRATCH** when the marker is in the green zone. Each hit does damage by your cat's Strength, and a cat with 1.2 or more Strength lands a BODY SLAM for half as much again. A fast cat sometimes gets a free DOUBLE SWIPE. If you press the BACK button during a trip, the game asks before taking you home.
 
 You can also throw a hairball. It costs one hairball, and it knocks the wild cat out if it lands. Throws almost always land.
 

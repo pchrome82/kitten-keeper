@@ -333,7 +333,9 @@ class Game {
   int batEstimate(int& kind) const;   // minutes; kind: 0 working it out, 1 to full, 2 to empty, 3 more than (minutes), 4 full
   void screenBattery(Canvas& cv);
   // auto-rotate: which sensor axis runs along the screen and which way is "up" is learned from the first steady upright pose
-  // (oriCfg_ & 7: 0 = not learned, else 1 + axis*2 + negative; oriCfg_ & 16 = auto-rotate switched off in Settings; & 32 = ...and held upside down: flipped by hand)
+  // (oriCfg_ & 7: 0 = not learned, else 1 + axis*2 + negative; oriCfg_ & ORI_ROTATE_ON = auto-rotate switched on in Settings.
+  //  Off is the default. Bits 16/32 were the old OFF / FLIP settings and are ignored now: older devices start with rotation off.)
+  static constexpr int ORI_ROTATE_ON = 64;
   int oriCfg_ = 0; bool flipped_ = false; float oriHold_ = 0, oriT_ = 0;
   void updateOrientation();
   void setFlip(bool f);
@@ -566,6 +568,7 @@ class Game {
 };
 
 // tiny side-view cat (Maze Run, Explore): breed colours, no snout
-void drawMiniCat(Canvas& cv, int x, int y, bool left, float t, int breed, float fat, bool moving);
+void drawMiniCat(Canvas& cv, int x, int y, bool left, float t, int breed, float fat, bool moving, float scale = 1.0f);
+float miniCatScale(float fat);   // Explore: how big the player's little cat is drawn (skinny 0.8x .. chonks up to 1.3x)
 
 }  // namespace cat

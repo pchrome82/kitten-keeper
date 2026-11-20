@@ -23,8 +23,17 @@ void Game::drawLittleCat(Canvas& cv, int x, int y, Pose pose, Face face, bool le
   drawCat(cv, x, y, d);
 }
 
-// Tiny side-view cat for Maze Run (an 11x10 pixel sprite in the breed's colours, no snout).
-void drawMiniCat(Canvas& cv, int x, int y, bool left, float t, int breed, float fat, bool moving) {
+// Tiny side-view cat for Explore, Maze Run and the neighbours (an ~11x10 pixel sprite, no snout), drawn in the
+// breed's own markings: Siamese points, a tuxedo's white bib and socks, calico patches, tabby stripes, the Void
+// Cat's yellow eyes, the Sphynx's big ears and whip tail, the Skogkatt's ruff, ear tufts and plume - and the Hamster
+// as a hamster. `scale` grows or shrinks the whole sprite (Explore: skinny cats down to 0.8x, chonks up to 1.3x).
+// (Kittens never go exploring, so there's no kitten size here.)
+float miniCatScale(float fat) {
+  if (fat >= 0) return 1.0f + 0.3f * (fat > 1.3f ? 1.0f : fat / 1.3f);   // fatLook tops out at 1.3: that's 1.3x
+  return 1.0f - 0.2f * (fat < -0.3f ? 1.0f : -fat / 0.3f);                // ...and bottoms out at -0.3 (skinny): 0.8x
+}
+
+void drawMiniCat(Canvas& cv, int x, int y, bool left, float t, int breed, float fat, bool moving, float scale) {
   const Color ol = rgb(28, 18, 30);
   Color coat = rgb(196, 188, 178), coat2 = rgb(150, 140, 132), belly = rgb(236, 230, 220), ear = rgb(240, 160, 170), eye = rgb(30, 24, 30);
   int pat = PAT_SOLID;
@@ -38,33 +47,92 @@ void drawMiniCat(Canvas& cv, int x, int y, bool left, float t, int breed, float 
     const float u = t * 0.6f; const int i = ((int)u) % 6; const int f = (int)((u - (int)u) * 256);
     coat = mix(hues[i], hues[(i + 1) % 6], f); coat2 = mix(hues[(i + 2) % 6], hues[(i + 3) % 6], f); belly = rgb(255, 255, 255);
   }
-  const int s = left ? -1 : 1;                      // facing
-  const int fw = fat > 1.0f ? 2 : (fat > 0.5f ? 1 : 0);   // chonks are a pixel or two wider
-  auto px = [&](int dx, int dy, Color c) { cv.set(x + s * dx, y + dy, c); };
+  const bool skog = breed == 6, voidCat = breed == 3, hamster = breed == BR_HAMSTER, sphynx = pat == PAT_SPHYNX;
+  if (voidCat) eye = rgb(250, 214, 80);                 // the Void Cat stares with big yellow eyes
+  if (scale < 0.3f) scale = 0.3f;
+  const int s = left ? -1 : 1;                          // facing
+  const int fw = fat > 1.0f ? 2 : (fat > 0.5f ? 1 : 0);   // chonks are a pixel or two wider (as well as scaled up)
+  // one sprite pixel = a little block, so the sprite scales cleanly (scale 1 = one screen pixel, as before)
+  auto px = [&](int dx, int dy, Color c) {
+    const int x0 = (int)floorf(dx * scale), x1 = (int)floorf((dx + 1) * scale) - 1;
+    const int y0 = (int)floorf(dy * scale), y1 = (int)floorf((dy + 1) * scale) - 1;
+    if (x1 < x0 || y1 < y0) return;
+    const int ax = s > 0 ? x + x0 : x - x1;
+    cv.rect(ax, y + y0, x1 - x0 + 1, y1 - y0 + 1, c);
+  };
   auto hl = [&](int dx0, int dx1, int dy, Color c) { for (int d = dx0; d <= dx1; d++) px(d, dy, c); };
   const int step = moving ? ((int)(t * 10)) & 1 : 0;
-  // outline pass (1 px bigger), then fill
+
+  if (hamster) {   // a round little hamster: no tail, tiny round ears, white tummy, puffy cheeks
+    for (int dy = -8; dy <= -1; dy++) { const int w = (dy == -8 || dy == -1) ? 3 : (dy == -7 ? 4 : 5); hl(-w - fw, w + fw, dy, ol); }
+    px(-2, -9, ol); px(-1, -9, ol); px(2, -9, ol); px(3, -9, ol);                    // ears
+    for (int dy = -7; dy <= -2; dy++) { const int w = (dy == -7 || dy == -2) ? 3 : 4; hl(-w - fw, w + fw, dy, coat); }
+    px(-2, -8, ear); px(2, -8, ear);
+    hl(-2 - fw, 2 + fw, -3, belly); hl(-1 - fw, 1 + fw, -2, belly);                    // tummy
+    px(3 + fw, -5, belly); px(4 + fw, -4, belly);                                      // cheek pouch
+    px(2, -6, eye); px(4 + fw, -6, ear);                                               // eye, nose
+    px(-3 - fw, -6, coat2); px(-2 - fw, -7, coat2);                                    // darker back
+    const int feet[2] = {-2 - fw, 2 + fw};
+    for (int i = 0; i < 2; i++) px(feet[i], (step && i == 0) || (!step && moving && i == 1) ? -1 : 0, ear);
+    return;
+  }
+
+  // ---- outline pass (1 px bigger), then fill ----
   for (int dy = -6; dy <= -1; dy++) hl(-5 - fw, 3 + fw, dy, ol);          // body
   for (int dy = -10; dy <= -4; dy++) hl(1, 7, dy, ol);                     // head
   px(1, -11, ol); px(2, -11, ol); px(5, -11, ol); px(6, -11, ol);           // ear tips
-  for (int k = 0; k < 5; k++) { px(-5 - fw - k / 2, -5 - k, ol); px(-6 - fw - k / 2, -5 - k, ol); }   // tail
-  for (int dy = -5; dy <= -2; dy++) hl(-4 - fw, 2 + fw, dy, coat);         // body fill
+  if (sphynx || skog) { px(2, -12, ol); px(6, -12, ol); }                   // Sphynx: big bat ears / Skogkatt: lynx tufts
+  if (skog) hl(1, 3, -3, ol);                                               // the ruff under the chin
+  const int tailW = sphynx ? 1 : (skog ? 3 : 2);                           // whip tail / normal / big plume (outline width)
+  for (int k = 0; k < 5; k++) for (int w = 0; w < tailW; w++) px(-5 - fw - k / 2 - w, -5 - k, ol);
+  // body
+  for (int dy = -5; dy <= -2; dy++) hl(-4 - fw, 2 + fw, dy, coat);
   hl(-3 - fw, 1 + fw, -2, belly);
-  for (int dy = -9; dy <= -5; dy++) hl(2, 6, dy, coat);                    // round head (no snout)
+  // head
+  for (int dy = -9; dy <= -5; dy++) hl(2, 6, dy, coat);
   px(2, -9, ol); px(6, -9, ol); px(2, -5, ol); px(6, -5, ol);              // round the head's corners
   px(2, -10, coat); px(6, -10, coat); px(3, -10, ear); px(5, -10, ear);   // ears
+  if (sphynx) { px(2, -11, coat); px(6, -11, coat); }
+  if (skog) { px(2, -4, belly); px(3, -4, belly); hl(1, 2, -3, belly); }   // a fluffy pale ruff
+  // markings
+  Color tailCol = coat, legCol = coat, pawCol = ol;
+  switch (pat) {
+    case PAT_TABBY:   // stripes over the back, an M on the forehead, a ringed tail
+      for (int k = -3 - fw; k <= 1 + fw; k += 2) { px(k, -5, coat2); px(k, -4, coat2); }
+      px(3, -9, coat2); px(5, -9, coat2); px(4, -8, coat2);
+      break;
+    case PAT_POINTS:  // Siamese: dark ears, mask, legs and tail on a cream coat
+      px(2, -10, coat2); px(6, -10, coat2); hl(3, 5, -6, coat2); px(4, -7, coat2);
+      tailCol = coat2; legCol = coat2;
+      break;
+    case PAT_TUX:     // tuxedo: white bib, muzzle and socks
+      hl(0, 2 + fw, -4, belly); hl(-1, 2 + fw, -3, belly); hl(3, 5, -5, belly); px(4, -6, belly);
+      pawCol = belly;
+      break;
+    case PAT_CALICO:  // white with orange and black patches
+      hl(-4 - fw, -2 - fw, -5, coat2); hl(-4 - fw, -3 - fw, -4, coat2); px(2, -10, coat2); hl(2, 3, -9, coat2);
+      hl(0, 1, -5, rgb(54, 46, 52)); px(1, -4, rgb(54, 46, 52)); hl(5, 6, -9, rgb(54, 46, 52)); px(6, -10, rgb(54, 46, 52));
+      tailCol = coat2;
+      break;
+    case PAT_SPHYNX:  // a few wrinkles on the brow
+      px(3, -9, coat2); px(5, -9, coat2);
+      break;
+    default: break;
+  }
   px(5, -7, eye); px(3, -7, eye);                                          // eyes
-  px(4, -6, ear);                                                          // tiny pink nose, flush with the face
-  if (pat == PAT_TABBY || pat == PAT_CALICO || pat == PAT_POINTS) { px(-2, -5, coat2); px(0, -5, coat2); px(-4 - fw, -4, coat2); px(4, -9, coat2); }
-  if (pat == PAT_TUX) { hl(0, 2, -3, belly); px(4, -5, belly); }
-  for (int k = 0; k < 5; k++) px(-5 - fw - k / 2, -5 - k, k > 2 && pat != PAT_SOLID ? coat2 : coat);   // tail fill
+  px(4, -6, pat == PAT_POINTS ? shade(ear, 60) : ear);                     // tiny nose, flush with the face
+  const int fillW = tailW > 1 ? tailW - 1 : 1;                             // tail fill (inside its outline)
+  for (int k = 0; k < 5; k++) {
+    const Color c = pat == PAT_TABBY ? ((k & 1) ? coat2 : coat) : tailCol;
+    for (int w = 0; w < fillW; w++) px(-5 - fw - k / 2 - w, -5 - k, c);
+  }
   // legs: diagonal pairs lift in turn while walking
   const int legs[4] = {-3 - fw, -1, 1 + fw, 3};
   for (int i = 0; i < 4; i++) {
     const bool lifted = step && (i == 0 || i == 2) ? true : (!step && moving && (i == 1 || i == 3));
     const int foot = lifted ? -1 : 0;
-    px(legs[i], -1, coat);
-    px(legs[i], foot, lifted ? coat : ol);
+    px(legs[i], -1, legCol);
+    px(legs[i], foot, lifted ? (pawCol == ol ? legCol : pawCol) : pawCol);
   }
 }
 
@@ -700,14 +768,6 @@ void Game::screenKnock(Canvas& cv) {
   // ---- the table, the things on it, and the cat ----
   drawGameTable(cv, ty, KNOCK_FLOOR, nite);
   for (int k = 0; k < 2; k++) if (g.hbT[k] > 0 && (g.hbT[k] > 1.0f || ((int)(anim_ * 10) % 2))) drawHairball(cv, (int)g.hbX[k], ty - 6, 6);
-  for (int i = 0; i < 5; i++) {
-    const KnockItem& it = g.it[i];
-    if (it.st == 0) {
-      const bool poised = g.cState == 2 && i == g.tgt;
-      const int wob = poised ? (int)(sinf(anim_ * 40) * 1.2f) : 0;
-      drawKnockItem(cv, it.type, (int)it.x + wob, ty, poised);
-    }
-  }
   {
     const bool left = g.cState != 0 && g.tgt >= 0 ? g.dir < 0 : false;   // faces the item it is about to shove
     const Pose pose = g.cState == 1 ? POSE_WALK : POSE_SIT;
@@ -726,6 +786,15 @@ void Game::screenKnock(Canvas& cv) {
     }
     if (g.cState == 2 && ((int)(anim_ * 8) % 2)) cv.textCenter((int)g.it[g.tgt].x, ty - 52, "TAP!", rgb(255, 236, 120));
     if (g.cState == 4) cv.textCenter((int)g.cx, ty - 46, "hmph", rgb(230, 222, 250));
+  }
+  // the items on the table are drawn over the cat, so the cat sits behind them
+  for (int i = 0; i < 5; i++) {
+    const KnockItem& it = g.it[i];
+    if (it.st == 0) {
+      const bool poised = g.cState == 2 && i == g.tgt;
+      const int wob = poised ? (int)(sinf(anim_ * 40) * 1.2f) : 0;
+      drawKnockItem(cv, it.type, (int)it.x + wob, ty, poised);
+    }
   }
   // ---- falling and fallen things ----
   for (int i = 0; i < 5; i++) {

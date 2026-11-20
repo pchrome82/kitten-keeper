@@ -179,6 +179,18 @@ float Pet::agility() const {
   const float traitF = trait == TRAIT_LAZY ? 0.95f : (trait == TRAIT_CURIOUS ? 1.03f : 1.0f);
   return b.speed * stageF * healthF * weightF * boost * traitF;
 }
+// Weight feeds strength, but only a fair share: a heavy cat hits up to 20% harder (at 30 over ideal), a skinny one
+// up to 10% softer (15 under). The breed's own Strength stays the main thing.
+float Pet::weightStrength() const {
+  const float over = d.chonk - idealWeight();
+  if (over >= 0) return 1.0f + 0.2f * clampf(over / 30.0f, 0, 1);
+  return 1.0f - 0.1f * clampf(-over / 15.0f, 0, 1);
+}
+float Pet::strength() const {
+  const float stageF = stage() == STAGE_SENIOR ? 0.85f : 1.0f;   // (kittens never go exploring)
+  const float breedF = BREEDS[d.breed < NUM_BREED_SLOTS ? d.breed : 0].strength;
+  return breedF * weightStrength() * stageF * boost * (trait == TRAIT_BRAVE ? 1.05f : 1.0f);
+}
 float Pet::power() const {
   float stageF = stage() == STAGE_KITTEN ? 0.7f : (stage() == STAGE_SENIOR ? 0.85f : 1.0f);
   const float breedF = BREEDS[d.breed < NUM_BREED_SLOTS ? d.breed : 0].strength;   // the breed's Strength stat

@@ -16,8 +16,8 @@ Every cat is one of seven breeds, which you choose when you adopt. Each breed ha
 
 What each stat does:
 
-- **Speed:** how quick the cat is in the games and on Explore.
-- **Strength:** how big the green target is in an Explore fight.
+- **Speed:** how quick the cat is in the games and on Explore. In an Explore fight, a fast cat sometimes lands a free DOUBLE SWIPE and dodges more of the wild cat's swipes.
+- **Strength:** how much damage each hit does in an Explore fight. Weight adds a little: up to +20% when heavy, down to -10% when skinny. A cat with 1.2 or more Strength lands a BODY SLAM for half as much again.
 - **Weight gain:** how quickly the cat puts on weight from food. A low number means it stays slimmer.
 - **Hairballs:** how often it coughs up hairballs. A low number means fewer. The Sphynx never does.
 

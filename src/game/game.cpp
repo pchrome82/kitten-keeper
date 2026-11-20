@@ -314,7 +314,7 @@ void Game::setFlip(bool f) {
 // Upside down -> the picture turns round too. Which sensor axis runs along the screen (and which end is "up") is learned
 // from the first steady upright pose, so it works whichever way the chip is mounted. Landscape holds change nothing.
 void Game::updateOrientation() {
-  if (oriCfg_ & 16) { setFlip((oriCfg_ & 32) != 0); return; }   // auto-rotate off: the way up chosen in Settings
+  if (!(oriCfg_ & ORI_ROTATE_ON)) { setFlip(false); return; }   // auto-rotate off (the default): always the normal way up
   if (!screenOn_ || scr == S_POUR || scr == S_LAP) { oriT_ = 0; return; }
   const float v[3] = {tiltAx_, tiltAy_, tiltAz_};
   const float step = 0.03f;                                   // (this runs once per IMU sample)
@@ -323,7 +323,10 @@ void Game::updateOrientation() {
     const bool upright = fabsf(v[ax]) > 0.85f && fabsf(v[1 - ax]) < 0.4f && fabsf(v[2]) < 0.45f;
     if (!upright) { oriHold_ = 0; return; }
     oriHold_ += step;
-    if (oriHold_ > 1.5f) { oriCfg_ = (oriCfg_ & ~7) | (1 + ax * 2 + (v[ax] < 0 ? 1 : 0)); plat->orientSet(oriCfg_); oriHold_ = 0; }
+    // "up" is the way the picture reads right now: if it is already turned round, the device is upside down, so the
+    // learned direction is the opposite one (without this, switching rotation on while flipped learned it backwards)
+    const bool negUp = (v[ax] < 0) != flipped_;
+    if (oriHold_ > 1.5f) { oriCfg_ = (oriCfg_ & ~7) | (1 + ax * 2 + (negUp ? 1 : 0)); plat->orientSet(oriCfg_); oriHold_ = 0; }
     return;
   }
   const int la = ((oriCfg_ & 7) - 1) >> 1, neg = ((oriCfg_ & 7) - 1) & 1;
@@ -340,7 +343,7 @@ void Game::updateMotion() {
   if (imuT_ < 0.03f) return;
   imuT_ = 0;
   float ax, ay, az;
-  if (!plat->imuRead(ax, ay, az)) { if (oriCfg_ & 16) setFlip((oriCfg_ & 32) != 0); return; }   // (no sensor: a manual flip still applies)
+  if (!plat->imuRead(ax, ay, az)) { if (!(oriCfg_ & ORI_ROTATE_ON)) setFlip(false); return; }   // (no sensor: rotation off keeps it the normal way up)
   {
     float gm = sqrtf(ax * ax + ay * ay + az * az);
     if (gm > 0.3f && gm < 3.0f) {   // ignore glitchy samples for tilt (wide band: works even if the g-scale is off); smooth the rest
@@ -475,7 +478,13 @@ void Game::updateSim() {
 }
 
 void Game::sound(Sound s) {
-  if (sv.volume > 0 && timeScale == 1) plat->playSound(s, sv.volume);
+  if (sv.volume > 0 && timeScale == 1) {
+    // the secret breeds have their own voice: their meows become a squeak (Hamster) or a shimmer (Rainbow Cat)
+    const bool meow = s == SND_MEOW_SOFT || s == SND_MEOW || s == SND_MEOW_LOUD;
+    if (meow && pet.d.breed == BR_HAMSTER) s = SND_HAMSTER;
+    else if (meow && pet.d.breed == BR_RAINBOW) s = SND_RAINBOW;
+    plat->playSound(s, sv.volume);
+  }
 }
 
 void Game::toast(const char* fmt, ...) {

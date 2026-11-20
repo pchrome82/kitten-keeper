@@ -567,7 +567,7 @@ void Game::netDrawPeers(Canvas& cv, int sx, int sy, float t) {
     const int x = (int)p.dx, y = (int)p.dy + 4;
     cv.ellipse(x, y + 1, 6, 2, SLOT_COL[i]);
     cv.ellipse(x, y + 1, 4, 1, rgb(30, 30, 30));
-    drawMiniCat(cv, x, y, p.left, t + i, p.breed, p.fat10 / 10.0f, p.moving);
+    drawMiniCat(cv, x, y, p.left, t + i, p.breed, p.fat10 / 10.0f, p.moving, miniCatScale(p.fat10 / 10.0f));   // (other players' cats: chonks look chonky too)
     cv.textCenter(x, y - 22, p.name, SLOT_COL[i]);
     if (p.stun > 0) for (int k = 0; k < 3; k++) {   // dazed: little stars round their head
       const float a = t * 4 + k * 2.1f;

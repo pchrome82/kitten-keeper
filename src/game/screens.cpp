@@ -187,7 +187,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.3.9", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.4.0", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -955,7 +955,7 @@ void Game::screenStats(Canvas& cv) {
   {   // hair, speed and strength as bars, like the breed picker's (speed and strength are this cat's, right now:
       // weight, health, age and charms all move them; full bar = 150)
     struct Row { const char* label; float v; Color c; } rows[3] = {
-      {"Hair", BREEDS[pet.d.breed].hair, rgb(250, 200, 110)}, {"Speed", pet.agility(), rgb(110, 220, 255)}, {"Str", pet.power() * 0.5f, rgb(255, 130, 170)}};
+      {"Hair", BREEDS[pet.d.breed].hair, rgb(250, 200, 110)}, {"Speed", pet.agility(), rgb(110, 220, 255)}, {"Str", pet.strength(), rgb(255, 130, 170)}};
     for (int i = 0; i < 3; i++) {
       const int x0 = 1 + i * 60;
       cv.textRight(x0 + 31, 172, rows[i].label, rgb(210, 200, 235));
@@ -1036,17 +1036,16 @@ void Game::screenSettings(Canvas& cv) {
     clockNext_ = S_SETTINGS;
     setScreen(S_CLOCK);
   }
-  // auto-rotate: ON (the tilt sensor decides) -> OFF (always the normal way up) -> FLIP (always upside down: a manual
-  // turn, for holding it the other way round with rotation off, or when there is no working tilt sensor)
-  const char* rotLbl = !(oriCfg_ & 16) ? "ROTATE: ON" : ((oriCfg_ & 32) ? "ROTATE: FLIP" : "ROTATE: OFF");
-  if (hasTouch && button(cv, 10, 140, 80, 24, rotLbl, (oriCfg_ & 16) ? rgb(110, 100, 130) : rgb(60, 150, 120))) {
-    if (!(oriCfg_ & 16)) oriCfg_ = (oriCfg_ | 16) & ~32;       // ON -> OFF
-    else if (!(oriCfg_ & 32)) oriCfg_ |= 32;                   // OFF -> FLIP
-    else oriCfg_ &= ~(16 | 32);                                // FLIP -> ON
-    if (!(oriCfg_ & 16)) {
-      oriCfg_ &= ~7;                                           // switched on: learn which way is up again
-      if (imuAge_ > 1.0f) { setFlip(false); toast("No tilt sensor found"); } else toast("Hold it upright a moment");
-    } else setFlip((oriCfg_ & 32) != 0);
+  // auto-rotate: OFF (the default: always the normal way up) <-> ON (the tilt sensor turns the picture round when the
+  // device is held upside down)
+  const bool rotOn = (oriCfg_ & ORI_ROTATE_ON) != 0;
+  if (hasTouch && button(cv, 10, 140, 80, 24, rotOn ? "ROTATE: ON" : "ROTATE: OFF", rotOn ? rgb(60, 150, 120) : rgb(110, 100, 130))) {
+    setFlip(false);                                            // either way, start from the normal way up
+    if (rotOn) oriCfg_ &= ~ORI_ROTATE_ON;                      // ON -> OFF
+    else {                                                     // OFF -> ON: learn which way is up from how it's held now
+      oriCfg_ = (oriCfg_ & ~(7 | 16 | 32)) | ORI_ROTATE_ON;
+      if (imuAge_ > 1.0f) toast("No tilt sensor found"); else toast("Hold it upright a moment");
+    }
     plat->orientSet(oriCfg_);
   }
   if (button(cv, hasTouch ? 96 : 10, 140, hasTouch ? 78 : 164, 24, "RESET GAME", RED)) { confirm_ = CF_RESET; confirmBack_ = S_SETTINGS; setScreen(S_CONFIRM); }
@@ -1063,7 +1062,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.9", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.4.0", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }

@@ -267,6 +267,7 @@ void Game::screenMagic(Canvas& cv) {
 // ---------------------------------------------------------------------------------------
 
 static const int CAN_X = 152, CAN_RIM = 114, CAN_BOT = 170, FLOOR_Y = 174;
+static const int MISS_Y = 165;   // where a missed lump comes to rest: a bit above the floor line, clear of the hint text
 
 // Does a dropped lump (a 10 x 6 px blob centred on x, y) count as "in the bin"? Yes when at least 55% of it
 // overlaps the can's mouth (28 px wide), even if it's hanging over an edge, and it isn't below the can.
@@ -409,7 +410,7 @@ void Game::screenLitter(Canvas& cv) {
       }
     }
     for (int i = 0; i < L.floorN && !L.carry; i++) {
-      float dx = L.floorX[i] - in.x, dy = (float)FLOOR_Y - in.y;
+      float dx = L.floorX[i] - in.x, dy = (float)MISS_Y - in.y;
       if (dx * dx + dy * dy < 12.0f * 12.0f) { L.carry = true; L.carryIdx = -1; for (int k = i; k + 1 < L.floorN; k++) L.floorX[k] = L.floorX[k + 1]; L.floorN--; sound(SND_SCOOP); }
     }
   }
@@ -479,10 +480,15 @@ void Game::screenLitter(Canvas& cv) {
     cv.ellipse(CAN_X, CAN_RIM, 15, 4, over ? rgb(140, 255, 160) : rgb(255, 230, 120));
     cv.ellipse(CAN_X, CAN_RIM, 13, 2, rgb(40, 44, 56));
   }
-  // floor lumps (missed)
+  // floor lumps (missed): a pulsing glow and a bobbing arrow so they're easy to spot
   for (int i = 0; i < L.floorN; i++) {
     int x = (int)L.floorX[i];
-    drawFloorPoop(cv, x, FLOOR_Y, anim_, i);
+    const float pulse = 0.5f + 0.5f * sinf(anim_ * 6.0f + i);
+    cv.ellipse(x, MISS_Y + 1, 10 + (int)(pulse * 2), 4, mix(rgb(120, 90, 30), rgb(255, 214, 90), (int)(pulse * 256)));
+    drawFloorPoop(cv, x, MISS_Y, anim_, i);
+    const int ay = MISS_Y - 22 + (int)(sinf(anim_ * 5.0f + i) * 3);
+    cv.tri(x - 5, ay, x + 5, ay, x, ay + 7, rgb(255, 214, 90));   // arrow head, pointing down at it
+    cv.rect(x - 2, ay - 6, 5, 6, rgb(255, 214, 90));               // and its shaft
   }
   // carried lump + fingertip
   if (L.carry) {
@@ -495,9 +501,11 @@ void Game::screenLitter(Canvas& cv) {
   if (L.falling) {
     L.fvy += 300.0f * dt; L.fx += L.fvx * dt; L.fy += L.fvy * dt;
     if (L.fallToCan) L.fx += (CAN_X - L.fx) * clampf(dt * 10, 0, 1);   // guided into the bin
-    cv.ellipse((int)L.fx, (int)L.fy, 4, 3, rgb(86, 54, 30)); cv.ellipse((int)L.fx - 1, (int)L.fy - 1, 2, 1, rgb(124, 84, 52));
     const bool inTrayNow = L.fx >= TX && L.fx < TX + TW && L.fy >= TY + 6 && L.fy < TY + TH;
-    if (L.fallToCan && L.fy >= CAN_RIM + 6) {   // (also when it was let go beside the can's body: it still counts)
+    // a lump headed for the bin vanishes the moment it reaches the mouth (checked before drawing: never drawn past it)
+    const bool intoCan = L.fallToCan && L.fy >= CAN_RIM;
+    if (!intoCan) { cv.ellipse((int)L.fx, (int)L.fy, 4, 3, rgb(86, 54, 30)); cv.ellipse((int)L.fx - 1, (int)L.fy - 1, 2, 1, rgb(124, 84, 52)); }
+    if (intoCan) {   // (also when it was let go beside the can's body: it still counts)
       L.falling = false; L.cleaned++; sound(SND_BLOOP); spawn(CAN_X, CAN_RIM, 6, rgb(255, 255, 160), 0, -20, 0.6f);
       if (L.carryIdx >= 0) { pet.scoop(1); litterHits_++; }
       L.carryIdx = -1;
@@ -506,7 +514,7 @@ void Game::screenLitter(Canvas& cv) {
     } else if (!L.fallToCan && L.carryIdx >= 0 && inTrayNow && L.fy > L.sy + 4) {   // dropped back in the sand
       L.falling = false; dropGone_[L.carryIdx] = false; dropX_[L.carryIdx] = L.fx; dropY_[L.carryIdx] = L.fy; L.carryIdx = -1;
       snprintf(L.msg, sizeof(L.msg), "Back in the sand..."); L.msgT = 1.2f;
-    } else if (L.fy >= FLOOR_Y) {
+    } else if (L.fy >= MISS_Y) {
       L.falling = false;
       if (L.carryIdx >= 0) { pet.scoop(1); }   // it's out of the box now: it's on the floor instead
       L.carryIdx = -1;

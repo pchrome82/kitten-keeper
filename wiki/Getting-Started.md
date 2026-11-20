@@ -73,7 +73,7 @@ A red dot on a button means that need wants you now. The FEED dot shows when you
 
 - **Volume** and **Bright** sliders, and **Screen off** to set how long the screen stays on without a touch. To mute quickly, press BOOT (see The side buttons, above).
 - **SET CLOCK** sets the date and time.
-- **ROTATE** switches between ON (the tilt sensor turns the screen), OFF (always the normal way up) and FLIP (always upside down).
+- **ROTATE** is OFF by default (always the normal way up). Switch it ON and the screen turns round when you hold the device upside down.
 - **TOUCH FIX** (on boards with a touch screen) calibrates touch from five taps. Use it if your taps land in the wrong place. The fix stays after a game reset.
 - **BIRTHDAY** changes your cat's birthday.
 - **RESET GAME** erases everything and starts from scratch. It asks you to confirm first.

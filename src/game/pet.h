@@ -151,7 +151,9 @@ class Pet {
   int evolveChoice(float* scores = nullptr) const;   // which breed the care habits point at
   void evolve();                  // for drawing
   float agility() const;                  // speed multiplier for games
-  float power() const;                    // scratching power
+  float power() const;                    // scratching power (the green zone's width; PvP)
+  float weightStrength() const;           // weight's share of strength: x0.9 skinny .. x1.0 at ideal .. x1.2 at 30+ over
+  float strength() const;                 // Explore fight damage: breed Strength x weight x age x amulet (1.0 = a Tabby at ideal weight)
   int mood() const;                       // 0 happy 1 ok 2 sad 3 angry 4 sleepy
   float ageDays() const { return d.age / DAY; }
   uint32_t rnd() { rng ^= rng << 13; rng ^= rng >> 17; rng ^= rng << 5; return rng; }

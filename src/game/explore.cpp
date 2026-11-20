@@ -166,7 +166,8 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
       if (m[y][6] != T_PATH) m[y][6] = T_SAND;
       if (m[y][9] != T_PATH) m[y][9] = T_SAND;
     }
-    m[5][7] = m[5][8] = T_BRIDGE;
+    m[5][7] = m[5][8] = T_BRIDGE;   // a wide bridge: two rows of planks
+    m[6][7] = m[6][8] = T_BRIDGE;
     if (sy == 2) { m[2][4] = T_SIGN; carve(m, 5, 2, 5, 2); m[2][5] = T_PATH; }
   }
   // the moat around the Alley King's lair (top-right screen)
@@ -181,7 +182,7 @@ void buildScreen(uint8_t m[EXR][EXC], int sx, int sy, uint8_t flags) {
       m[y][x] = ring ? T_WATER : T_GRASS;
     }
     cave(m, 5, 3);
-    m[6][5] = T_BRIDGE;
+    m[6][5] = m[6][4] = T_BRIDGE;   // a wide bridge over the moat: two planks across
     m[5][5] = (flags & 2) ? T_PATH : T_GATE;
     m[4][5] = T_PATH;
     m[7][3] = T_SIGN;
@@ -493,7 +494,9 @@ void drawTile(Canvas& cv, uint8_t t, int x, int y, int tx, int ty, int salt, flo
       if (t == T_LILY) { cv.ellipse(x + 8, y + 9, 5, 3, rgb(60, 150, 70)); cv.set(x + 9, y + 9, rgb(52, 120, 200)); cv.disc(x + 7, y + 7, 1, rgb(255, 170, 200)); }
       break; }
     case T_BRIDGE: {
-      bool acrossH = (lf == T_WATER || lf == T_LILY || lf == T_BRIDGE) && t == T_BRIDGE;   // river under us: walk left-right
+      // water above or below: the bridge is crossed left-right (the river); else up-down (the moat). Judged from the
+      // tiles above/below so both halves of a wide bridge agree.
+      bool acrossH = up == T_WATER || up == T_LILY || dn == T_WATER || dn == T_LILY;
       Color plank = rgb(170, 116, 70), dark = rgb(120, 78, 44);
       if (!acrossH) {   // planks run left-right, rails on the sides (crossing up/down)
         cv.rect(x, y, TS, TS, plank); for (int k = 0; k < TS; k += 4) cv.hline(x, y + k, TS, dark);
@@ -865,6 +868,9 @@ void Game::screenExplore(Canvas& cv) {
   };
   auto startFight = [&](int species, float str, int hp, bool boss) {
     g.prize = (boss && (sv.ex.flags & 4)) ? rematchPrize() : 0;
+    // a wild cat's health is in tenths of a hit, so the cat's Strength counts: tougher cats (further from home) have more
+    // (about 2 average hits close to home, 5 at the far corner). The King keeps whole hairball hits.
+    if (!boss) hp = (int)(30.0f * str / 1.25f + 0.5f);
     g.state = 3; g.foeSpecies = species; g.foeStr = str; g.foeHp = g.foeMax = hp; g.myHp = g.myMax = boss ? 4 : 3;
     g.marker = 0; g.markerDir = 1; g.roundT = 0; g.lastHit = 0; g.boss = boss; g.fights++; g.swingT = 0;
     g.zoneW = clampf(0.10f + 0.025f * (pet.power() - 0.9f), 0.06f, 0.17f); g.zoneC = 0.5f;   // the first swing: centred
@@ -1204,7 +1210,9 @@ void Game::screenExplore(Canvas& cv) {
       }
       float dx = ax - g.x, dy = ay - g.y, dist = sqrtf(dx * dx + dy * dy);
       if (dist > 0.8f) {
-        float sp = (38.0f + 22.0f * pet.agility()) * pet.weightSpeed() * pet.gameDrag();
+        // 60 px/s for an average cat, scaled by agility (breed Speed x age x health x weight x amulet). The weight
+        // slowdown is inside agility(): it used to be applied twice more here, so a chonk crawled at half speed.
+        float sp = 60.0f * clampf(pet.agility(), 0.5f, 1.6f);
         float st = fminf(sp * dt, dist);
         g.x += dx / dist * st; g.y += dy / dist * st;
         if (fabsf(dx) > 0.5f) g.left = dx < 0;
@@ -1541,7 +1549,7 @@ void Game::screenExplore(Canvas& cv) {
       cy = (int)(g.y + (-g.slideDy * PH * k) + g.slideDy * PH) + 4;
     }
     cv.ellipse(cx, cy + 1, 5, 2, rgb(30, 30, 30));
-    drawMiniCat(cv, cx, cy, g.left, g.t, pet.lookBreed(), pet.fatLook(), g.moving || g.state == 1);
+    drawMiniCat(cv, cx, cy, g.left, g.t, pet.lookBreed(), pet.fatLook(), g.moving || g.state == 1, miniCatScale(pet.fatLook()));
     if (g.napT > 0) {   // z z z
       for (int k = 0; k < 3; k++) {
         const float p = fmodf(g.t * 0.8f + k / 3.0f, 1.0f);
@@ -1628,7 +1636,8 @@ void Game::screenExplore(Canvas& cv) {
       if (g.dAct == 1) {   // hermit's charm
         if (sv.coins >= 10) { sv.coins -= 10; sv.slowItem = 1; updateToys(); sound(SND_WIN); say("The charm glows warmly."); autosave(true); }
         else { sound(SND_LOSE); say("Not enough hairballs!"); }
-      } else if (g.dAct == 2) startFight(2, 1.9f, 10, true);   // the Alley King: 10 hairball hits
+      } else if (g.dAct == 4) { setScreen(S_HOME); return; }   // BACK, confirmed: home (the trip waits)
+      else if (g.dAct == 2) startFight(2, 1.9f, 10, true);   // the Alley King: 10 hairball hits
       else if (g.dAct == 3) {   // the Hidden Hermit's amulet
         if (sv.coins >= 40) { sv.coins -= 40; sv.ex.flags |= 64; updateToys(); sound(SND_WIN); say("You feel strong and swift!"); autosave(true); }
         else { sound(SND_LOSE); say("Not enough hairballs!"); }
@@ -1664,8 +1673,8 @@ void Game::screenExplore(Canvas& cv) {
         if (fm.eyeY >= 0) { kx = fm.eyeX; const int ty = fm.eyeY - (int)(15 * d.size); if (ty > ky) ky = ty; }   // on the head, not up on a raised tail mid-leap
         cv.rect(kx - 6, ky - 3, 12, 4, rgb(250, 210, 60)); cv.set(kx - 6, ky - 5, rgb(250, 210, 60)); cv.set(kx, ky - 6, rgb(250, 210, 60)); cv.set(kx + 5, ky - 5, rgb(250, 210, 60)); } }
     for (int i = 0; i < g.myMax; i++) gdisc(cv, 24 + i * 10, 58, 3, i < g.myHp ? rgb(240, 80, 110) : rgb(70, 60, 90));
-    if (g.coop) {   // King Raid: everyone's hits count, and his health is a bar (it can be 30+ hits)
-      if (net_.bossHp < g.foeHp) g.foeHp = net_.bossHp;
+    if (g.coop || !g.boss) {   // a wild cat (health in tenths of a hit) and the King Raid (30+ hits): a bar
+      if (g.coop && net_.bossHp < g.foeHp) g.foeHp = net_.bossHp;
       cv.rect(96, 55, 70, 6, rgb(24, 18, 40));
       cv.rect(96, 55, g.foeMax > 0 ? 70 * (g.foeHp < 0 ? 0 : g.foeHp) / g.foeMax : 0, 6, rgb(240, 80, 110));
       cv.frame(95, 54, 72, 8, rgb(20, 12, 36));
@@ -1690,7 +1699,7 @@ void Game::screenExplore(Canvas& cv) {
           } else {
             g.lastHit = 0; sound(SND_MISS); say(g.boss ? "The King dodged it!" : "Missed!");
             if (!g.boss) {   // a wild cat gets a swipe in when you miss
-              const float pf = clampf(0.38f * g.foeStr / clampf(pet.agility(), 0.6f, 1.3f), 0.05f, 0.8f);
+              const float pf = clampf(0.38f * g.foeStr / clampf(pet.agility(), 0.6f, 1.6f), 0.05f, 0.8f);
               if (pet.rndf() < pf) { g.myHp--; g.lastHit = 2; }
             }
           }
@@ -1748,7 +1757,7 @@ void Game::screenExplore(Canvas& cv) {
         const Color mc = !held ? rgb(255, 255, 255) : (heldHit ? rgb(255, 240, 120) : rgb(255, 90, 80));
         cv.rect(mx - 1, by - 3, 3, 16, mc);
         if (held) cv.tri(mx - 4, by - 8, mx + 4, by - 8, mx, by - 4, mc);   // a pointer at the spot they pressed
-        if (held) cv.textCenter(W / 2, 116, g.swingRes == 2 ? "BODY SLAM! x2" : (g.swingRes == 1 ? "HIT!" : "MISS!"), heldHit ? rgb(150, 255, 150) : rgb(255, 120, 110));
+        if (held) cv.textCenter(W / 2, 116, g.swingRes == 3 ? "DOUBLE SWIPE!" : (g.swingRes == 2 ? "BODY SLAM!" : (g.swingRes == 1 ? "HIT!" : "MISS!")), heldHit ? rgb(150, 255, 150) : rgb(255, 120, 110));
         else cv.textCenter(W / 2, 118, "SCRATCH on the green!", C_DIM);
         if (g.lastHit) g.roundT += dt;
         if (g.roundT > 0.45f) { g.lastHit = 0; g.roundT = 0; }
@@ -1758,13 +1767,20 @@ void Game::screenExplore(Canvas& cv) {
         const bool swingNow = in.pressed && in.px >= 20 && in.px < 92 && in.py >= 145 && in.py < 171;
         if (swingNow && canSwing) {
           bool hit = fabsf(g.marker - g.zoneC) < g.zoneW;
-          const bool slam = hit && pet.d.chonk >= idealW + 20;
-          g.swingT = 1.0f; g.swingMarker = g.marker; g.swingZoneC = g.zoneC; g.swingZoneW = g.zoneW; g.swingRes = slam ? 2 : (hit ? 1 : 0);
+          // Strength = damage per hit (in tenths of a wild cat's health); a strong cat (1.2+, from its breed and
+          // weight) BODY SLAMs for half as much again. Speed = a chance to get a second swipe in for free.
+          const float str = pet.strength();
+          const bool slam = hit && str >= 1.2f;
+          const bool dbl = hit && pet.rndf() < clampf((pet.agility() - 0.85f) * 0.6f, 0.0f, 0.4f);
+          int dmg = (int)(10.0f * str * (slam ? 1.5f : 1.0f) + 0.5f); if (dmg < 5) dmg = 5;
+          g.swingT = 1.0f; g.swingMarker = g.marker; g.swingZoneC = g.zoneC; g.swingZoneW = g.zoneW;
+          g.swingRes = !hit ? 0 : (dbl ? 3 : (slam ? 2 : 1));
           if (hit) {
-            g.foeHp -= slam ? 2 : 1; g.lastHit = 1; sound(SND_HIT_GOOD);
-            if (slam) say("BODY SLAM! x2");
+            g.foeHp -= dbl ? dmg * 2 : dmg; g.lastHit = 1; sound(SND_HIT_GOOD);
+            if (dbl) say(slam ? "DOUBLE SLAM!" : "DOUBLE SWIPE!"); else if (slam) say("BODY SLAM!");
           } else { g.lastHit = 2; sound(SND_HIT_BAD); }
-          float pf = clampf((hit ? 0.15f : 0.38f) * g.foeStr / clampf(pet.agility(), 0.6f, 1.3f), 0.05f, 0.8f);
+          // ...and fast cats dodge more of the wild cat's swipes back
+          float pf = clampf((hit ? 0.15f : 0.38f) * g.foeStr / clampf(pet.agility(), 0.6f, 1.6f), 0.05f, 0.8f);
           if (pet.rndf() < pf) { g.myHp--; g.lastHit = 2; }
           g.roundT = 0.001f;
           rollZone();   // hit or miss, the green zone moves for the next swing
@@ -1939,7 +1955,9 @@ void Game::screenExplore(Canvas& cv) {
     drawToasts(cv);
     return;
   }
-  if (g.state == 0 && backButton(cv)) { setScreen(S_HOME); return; }   // the trip waits for their (until they sleep)
+  // BACK sits right above the top of the map, where a tap to walk north lands: ask first instead of leaving at once
+  // (the trip waits for them either way, until they sleep)
+  if (g.state == 0 && backButton(cv)) dialog("GO HOME?", "Head home for now?", "The trip waits for you", "until bedtime.", "HOME", "STAY", 4, 0);
   drawIconS(cv, 9, 70, 10, 0.5f);
   gbar(cv, 78, 6, 50, 7, (int)pet.d.energy, pet.d.energy < 25 ? rgb(240, 70, 70) : rgb(100, 180, 255));
   { char b[16]; coinText(b, sizeof(b));
