@@ -187,7 +187,7 @@ void Game::screenMode(Canvas& cv) {
   // START (a tap anywhere works too)
   const bool go = button(cv, 30, 190, 124, 22, "START", rgb(200, 70, 200)) || in.tap;
   if (((int)(anim_ * 1.5f)) & 1) { cv.disc(36, 201, 1, rgb(255, 255, 220)); cv.disc(148, 201, 1, rgb(255, 255, 220)); }
-  cv.textCenter(W / 2, 215, "v1.4.0", rgb(140, 120, 180));
+  cv.textCenter(W / 2, 215, "v1.3.9a", rgb(140, 120, 180));
   if (go) {
     sv.mode = MODE_EASY;
     { DateTime t = fromEpoch(epoch); clockSel_[0] = t.year; clockSel_[1] = t.month; clockSel_[2] = t.day; clockSel_[3] = t.hour; clockSel_[4] = t.minute; }
@@ -1062,7 +1062,7 @@ void Game::screenSettings(Canvas& cv) {
     if (held >= 3.0f) { held = -100; devAddHairballs(100); }   // (once per hold: it counts up from -100 until the finger lifts)
   }
   if (timeScale > 1) { snprintf(b, sizeof(b), "DEBUG x%d", timeScale); cv.textCenter(W / 2, 190, b, rgb(255, 120, 120)); }
-  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.4.0", DIM);
+  else cv.textCenter(W / 2, 190, "Kitten Keeper v1.3.9a", DIM);
   updateParticles(dt);
   drawToasts(cv);
   if (button(cv, 40, 199, 104, 21, "BACK", GREEN)) { autosave(true); setScreen(S_MENU); }
